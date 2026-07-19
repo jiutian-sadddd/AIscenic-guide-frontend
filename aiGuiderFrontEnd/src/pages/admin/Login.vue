@@ -92,15 +92,17 @@ async function handleLogin() {
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
 
   &__card {
-    width: 400px;
-    padding: 40px;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 16px;
+    padding: 32px 24px;
     background: #fff;
     border-radius: 12px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   }
 
   &__title {
-    font-size: 24px;
+    font-size: 22px;
     text-align: center;
     color: #333;
     margin-bottom: 4px;
@@ -110,7 +112,19 @@ async function handleLogin() {
     text-align: center;
     color: #999;
     font-size: 14px;
-    margin-bottom: 32px;
+    margin-bottom: 24px;
+  }
+
+  @media (min-width: 480px) {
+    &__card {
+      padding: 40px;
+    }
+    &__title {
+      font-size: 24px;
+    }
+    &__subtitle {
+      margin-bottom: 32px;
+    }
   }
 }
 </style>

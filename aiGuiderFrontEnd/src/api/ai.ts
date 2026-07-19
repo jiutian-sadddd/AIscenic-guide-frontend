@@ -5,11 +5,12 @@
 
 import type { KBStats, UserPreferences, AISession, AIHistoryMessage, ChatMode } from '@/types/api.types'
 
-/** AI 服务 base URL */
+/** AI 服务 base URL（优先使用环境变量，其次自动检测） */
 const AI_BASE =
-  window.location.protocol === 'file:' || window.location.hostname === 'localhost'
+  import.meta.env.VITE_AI_BASE_URL ||
+  (window.location.protocol === 'file:' || window.location.hostname === 'localhost'
     ? 'http://localhost:8080'
-    : import.meta.env.VITE_AI_BASE_URL || 'https://ggysummer.zeabur.app'
+    : 'https://ggysummer.zeabur.app')
 
 /** 获取 JWT token */
 function getToken(): string | null {

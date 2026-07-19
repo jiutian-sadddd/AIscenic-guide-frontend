@@ -1,0 +1,220 @@
+{
+	"Version": 3,
+	"Parameters": [
+		{
+			"Id": "faceX",
+			"GroupId": "ParamGroup2",
+			"Name": "角度x"
+		},
+		{
+			"Id": "faceY",
+			"GroupId": "ParamGroup2",
+			"Name": "角度y"
+		},
+		{
+			"Id": "faceR",
+			"GroupId": "ParamGroup2",
+			"Name": "角度z"
+		},
+		{
+			"Id": "upmouthOC",
+			"GroupId": "ParamGroup3",
+			"Name": "上嘴巴开闭"
+		},
+		{
+			"Id": "downmouthOC",
+			"GroupId": "ParamGroup3",
+			"Name": "下嘴巴开闭"
+		},
+		{
+			"Id": "mouthShapeChange",
+			"GroupId": "ParamGroup3",
+			"Name": "嘴巴变形"
+		},
+		{
+			"Id": "eyeballX",
+			"GroupId": "ParamGroup4",
+			"Name": "角度x"
+		},
+		{
+			"Id": "eyeballY",
+			"GroupId": "ParamGroup4",
+			"Name": "角度y"
+		},
+		{
+			"Id": "eyeballROC",
+			"GroupId": "ParamGroup4",
+			"Name": "右眼开闭"
+		},
+		{
+			"Id": "eyeballLOC",
+			"GroupId": "ParamGroup4",
+			"Name": "左眼开闭"
+		},
+		{
+			"Id": "ButtomArmR",
+			"GroupId": "ParamGroup5",
+			"Name": "默认手臂旋转"
+		},
+		{
+			"Id": "gestureSwitch",
+			"GroupId": "ParamGroup5",
+			"Name": "手势切换"
+		},
+		{
+			"Id": "forearmR",
+			"GroupId": "ParamGroup5",
+			"Name": "手势二-小臂旋转"
+		},
+		{
+			"Id": "upperarmR",
+			"GroupId": "ParamGroup5",
+			"Name": "手势二-大臂伸展"
+		},
+		{
+			"Id": "bodyRX",
+			"GroupId": "ParamGroup6",
+			"Name": "身体X"
+		},
+		{
+			"Id": "breath",
+			"GroupId": "ParamGroup6",
+			"Name": "呼吸"
+		},
+		{
+			"Id": "backHairWave",
+			"GroupId": "ParamGroup7",
+			"Name": "后发"
+		},
+		{
+			"Id": "sidehairWave",
+			"GroupId": "ParamGroup7",
+			"Name": "侧发"
+		},
+		{
+			"Id": "fronthairWave",
+			"GroupId": "ParamGroup7",
+			"Name": "前发"
+		}
+	],
+	"ParameterGroups": [
+		{
+			"Id": "ParamGroup2",
+			"GroupId": "",
+			"Name": "头部运动"
+		},
+		{
+			"Id": "ParamGroup3",
+			"GroupId": "",
+			"Name": "嘴巴开闭"
+		},
+		{
+			"Id": "ParamGroup4",
+			"GroupId": "",
+			"Name": "眼睛运动"
+		},
+		{
+			"Id": "ParamGroup5",
+			"GroupId": "",
+			"Name": "手臂运动"
+		},
+		{
+			"Id": "ParamGroup6",
+			"GroupId": "",
+			"Name": "身体"
+		},
+		{
+			"Id": "ParamGroup7",
+			"GroupId": "",
+			"Name": "头发"
+		}
+	],
+	"Parts": [
+		{
+			"Id": "frontHair",
+			"Name": "前发"
+		},
+		{
+			"Id": "face",
+			"Name": "face"
+		},
+		{
+			"Id": "body",
+			"Name": "body"
+		},
+		{
+			"Id": "rightarm",
+			"Name": "right arm"
+		},
+		{
+			"Id": "leftarm",
+			"Name": "left arm"
+		},
+		{
+			"Id": "hair",
+			"Name": "hair"
+		},
+		{
+			"Id": "Reyeball",
+			"Name": "右眼珠"
+		},
+		{
+			"Id": "Leyeball",
+			"Name": "左眼珠"
+		},
+		{
+			"Id": "righteye",
+			"Name": "右眼"
+		},
+		{
+			"Id": "lefteye",
+			"Name": "左眼"
+		},
+		{
+			"Id": "Nose",
+			"Name": "鼻子"
+		},
+		{
+			"Id": "Reyebrow",
+			"Name": "右眉毛"
+		},
+		{
+			"Id": "Leyebrow",
+			"Name": "左眉毛"
+		},
+		{
+			"Id": "Bmouth",
+			"Name": "嘴巴"
+		},
+		{
+			"Id": "faceBasic",
+			"Name": "脸"
+		},
+		{
+			"Id": "Rear",
+			"Name": "右耳朵"
+		},
+		{
+			"Id": "Lear",
+			"Name": "左耳朵"
+		},
+		{
+			"Id": "righthair",
+			"Name": "righthair"
+		},
+		{
+			"Id": "lefthair",
+			"Name": "lefthair"
+		}
+	],
+	"CombinedParameters": [
+		[
+			"faceX",
+			"faceY"
+		],
+		[
+			"eyeballX",
+			"eyeballY"
+		]
+	]
+}

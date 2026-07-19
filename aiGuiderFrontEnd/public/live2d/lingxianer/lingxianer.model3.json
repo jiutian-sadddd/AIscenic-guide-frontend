@@ -1,0 +1,30 @@
+{
+	"Version": 3,
+	"FileReferences": {
+		"Moc": "lingxianer.moc3",
+		"Textures": [
+			"lingxianer.4096/texture_00.png"
+		],
+		"Physics": "lingxianer.physics3.json",
+		"DisplayInfo": "lingxianer.cdi3.json"
+	},
+	"Groups": [
+		{
+			"Target": "Parameter",
+			"Name": "EyeBlink",
+			"Ids": [
+				"eyeballROC",
+				"eyeballLOC"
+			]
+		},
+		{
+			"Target": "Parameter",
+			"Name": "LipSync",
+			"Ids": [
+				"upmouthOC",
+				"downmouthOC",
+				"mouthShapeChange"
+			]
+		}
+	]
+}

@@ -119,7 +119,7 @@
     <el-dialog
       v-model="dialogVisible"
       :title="isEditing ? '编辑文档' : '上传文档'"
-      width="680px"
+      :width="isMobile ? '95%' : '680px'"
       destroy-on-close
     >
       <el-form :model="docForm" label-width="80px">
@@ -186,7 +186,7 @@
     <el-drawer
       v-model="detailVisible"
       title="文档详情"
-      size="600px"
+      :size="isMobile ? '90%' : '600px'"
     >
       <template v-if="currentDoc">
         <div class="doc-detail">
@@ -203,12 +203,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, Plus } from '@element-plus/icons-vue'
 import { marked } from 'marked'
 import * as knowledgeApi from '@/api/knowledge'
 import type { KnowledgeDoc, DocCategory, CategoryStat } from '@/types/api.types'
+
+// ==================== 响应式检测 ====================
+const windowWidth = ref(window.innerWidth)
+const isMobile = computed(() => windowWidth.value < 768)
+
+function onResize() {
+  windowWidth.value = window.innerWidth
+}
 
 // ==================== 列表状态 ====================
 const docList = ref<KnowledgeDoc[]>([])
@@ -247,8 +255,13 @@ const currentDoc = ref<KnowledgeDoc | null>(null)
 
 // ==================== 初始化 ====================
 onMounted(() => {
+  window.addEventListener('resize', onResize)
   fetchCategories()
   fetchList()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', onResize)
 })
 
 async function fetchCategories() {
@@ -432,6 +445,14 @@ function getMockDocs(): KnowledgeDoc[] {
   display: flex;
   flex-direction: column;
   gap: 16px;
+
+  // 移动端表格横向滚动
+  :deep(.el-card__body) {
+    @media (max-width: 768px) {
+      padding: 12px 8px;
+      overflow-x: auto;
+    }
+  }
 }
 
 .knowledge-toolbar {
@@ -446,6 +467,34 @@ function getMockDocs(): KnowledgeDoc[] {
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
+  }
+
+  &__right {
+    flex-shrink: 0;
+  }
+}
+
+// 移动端工具栏适配
+@media (max-width: 640px) {
+  .knowledge-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+
+    &__left {
+      flex-direction: column;
+      align-items: stretch;
+
+      :deep(.el-select),
+      :deep(.el-input) {
+        width: 100% !important;
+      }
+    }
+
+    &__right {
+      :deep(.el-button) {
+        width: 100%;
+      }
+    }
   }
 }
 

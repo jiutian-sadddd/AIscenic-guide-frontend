@@ -106,6 +106,7 @@ $header-height: 56px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-width: 0; // prevent flex overflow
   }
 
   &__header {
@@ -115,13 +116,13 @@ $header-height: 56px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 20px;
+    padding: 0 16px;
     flex-shrink: 0;
   }
 
   &__content {
     flex: 1;
-    padding: 20px;
+    padding: 16px;
     overflow-y: auto;
     background: #f0f2f5;
   }
@@ -150,16 +151,67 @@ $header-height: 56px;
 .header-left {
   display: flex;
   align-items: center;
+  min-width: 0;
+
+  // Hide breadcrumb on very small screens
+  :deep(.el-breadcrumb) {
+    @media (max-width: 480px) {
+      display: none;
+    }
+  }
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .header-user {
-  font-size: 14px;
+  font-size: 13px;
   color: #666;
+
+  @media (max-width: 480px) {
+    font-size: 12px;
+  }
+}
+
+// ---- 移动端适配 ----
+@media (max-width: 768px) {
+  .admin-layout {
+    &__sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      z-index: 1000;
+      transform: translateX(-100%);
+      transition: transform 0.3s;
+
+      &.collapsed {
+        // On mobile, "collapsed" means visible (toggle behavior)
+        transform: translateX(0);
+        width: $sidebar-width;
+      }
+
+      // Backdrop
+      &.collapsed::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: -1;
+      }
+    }
+
+    &__header {
+      padding: 0 12px;
+    }
+
+    &__content {
+      padding: 12px;
+    }
+  }
 }
 </style>

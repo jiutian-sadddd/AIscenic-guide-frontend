@@ -50,7 +50,7 @@ const emit = defineEmits<{
   (e: 'skip'): void
 }>()
 
-const selectedPrefs = reactive<UserPreferences>({ ...props.initialPrefs })
+const selectedPrefs = reactive<Record<string, string | undefined>>({ ...props.initialPrefs })
 
 function toggleOption(key: string, opt: string): void {
   const current = selectedPrefs[key] || ''

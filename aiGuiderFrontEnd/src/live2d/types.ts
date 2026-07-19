@@ -15,6 +15,10 @@ export interface ICubismMocStatic {
 /** 模型实例 — 参数读写 & 更新 */
 export interface ICubismModel {
   update(): void
+  /** Core 更新のみ（resetDynamicFlags を呼ばない） */
+  updateCore?(): void
+  /** 頂点変更フラグをリセット（drawModel 完了後に呼ぶ） */
+  resetDynamicFlags?(): void
   draw(matrix: Float32Array): void
   setParameterValueById(id: string, value: number, weight?: number): void
   getParameterValueById(id: string): number
@@ -56,6 +60,8 @@ export interface ICubismRenderer {
   setIsPremultipliedAlpha(enable: boolean): void
   /** 设置 WebGL 上下文，必须在 initialize 之后、drawModel 之前调用 */
   startUp(gl: WebGLRenderingContext): void
+  /** 设置渲染状态（framebuffer + viewport），每次 drawModel 之前调用 */
+  setRenderState(fbo: WebGLFramebuffer | null, viewport: number[]): void
 }
 
 export interface ICubismRendererStatic {
@@ -76,10 +82,14 @@ export interface ICubismFramework {
 
 /** 模型配置 */
 export interface Live2DModelConfig {
-  /** .cmo3 模型文件路径 */
+  /** 模型目录路径 (包含 .model3.json 的目录) */
   modelPath: string
-  /** .can3 动画文件路径 */
-  animationPath?: string
+  /** model3.json 文件名 (默认 "lingxianer.model3.json") */
+  modelJsonName?: string
+  /** 动画目录路径 */
+  motionPath?: string
+  /** 动画名称映射 { 名称: 文件名 } */
+  motions?: Record<string, string>
   /** 模型缩放比例 */
   scale?: number
   /** X 偏移 */
@@ -88,24 +98,67 @@ export interface Live2DModelConfig {
   offsetY?: number
 }
 
-/** 动画名称 → 索引映射 (一个 .can3 中可能含多个动画) */
-export type MotionMap = Record<string, number>
+/** 动画名称 → 索引映射 */
+export type MotionMap = Record<string, string>
 
-/** 默认参数 ID (Cubism 标准) */
+/**
+ * 自定义模型参数 ID — 匹配 lingxianer 模型
+ *
+ * 这些参数是在 Live2D Cubism Editor 中为模型定义的自定义参数，
+ * 与 Cubism 标准参数 (ParamAngleX 等) 不同。
+ */
 export const CUBISM_PARAMS = {
-  ANGLE_X: 'ParamAngleX',
-  ANGLE_Y: 'ParamAngleY',
-  ANGLE_Z: 'ParamAngleZ',
-  EYE_BALL_X: 'ParamEyeBallX',
-  EYE_BALL_Y: 'ParamEyeBallY',
-  MOUTH_OPEN_Y: 'ParamMouthOpenY',
-  MOUTH_FORM: 'ParamMouthForm',
-  BODY_ANGLE_X: 'ParamBodyAngleX',
-  BODY_ANGLE_Y: 'ParamBodyAngleY',
-  BODY_ANGLE_Z: 'ParamBodyAngleZ',
-  BREATH: 'ParamBreath',
-  EYE_OPEN_L: 'ParamEyeLOpen',
-  EYE_OPEN_R: 'ParamEyeROpen',
+  // ---- 头部运动 ----
+  /** 头部左右水平摇头 -20~20 */
+  ANGLE_X: 'faceX',
+  /** 头部上下俯仰 -20~20 */
+  ANGLE_Y: 'faceY',
+  /** 头部左右歪头倾斜 -20~20 */
+  ANGLE_Z: 'faceR',
+
+  // ---- 眼球视线 ----
+  /** 眼球左右视线移动 -20~20 */
+  EYE_BALL_X: 'eyeballX',
+  /** 眼球上下视线移动 -20~20 */
+  EYE_BALL_Y: 'eyeballY',
+
+  // ---- 眼睛开闭 ----
+  /** 右眼眼皮 0闭~1默认~1.5睁大 */
+  EYE_OPEN_L: 'eyeballLOC',
+  /** 左眼眼皮 0闭~1默认~1.5睁大 */
+  EYE_OPEN_R: 'eyeballROC',
+
+  // ---- 嘴巴 ----
+  /** 上唇开合 0闭~1开 */
+  MOUTH_OPEN_Y: 'upmouthOC',
+  /** 下唇开合 0闭~1开 */
+  MOUTH_OPEN_YL: 'downmouthOC',
+  /** 嘴型宽窄弧度形变 -1~1 */
+  MOUTH_FORM: 'mouthShapeChange',
+
+  // ---- 身体 ----
+  /** 躯干左右侧身偏移 -10~10 */
+  BODY_ANGLE_X: 'bodyRX',
+  /** 胸腹呼吸起伏 0静止~1扩张 */
+  BREATH: 'breath',
+
+  // ---- 头发飘逸 ----
+  /** 后脑后发摆动 -1~1 */
+  HAIR_BACK: 'backHairWave',
+  /** 两侧马尾侧发摆动 -1~1 */
+  HAIR_SIDE: 'sidehairWave',
+  /** 额前刘海飘动 -1~1 */
+  HAIR_FRONT: 'fronthairWave',
+
+  // ---- 手臂 (供高级动画控制) ----
+  /** 默认手臂旋转 0~10 */
+  ARM_DEFAULT_ROTATE: 'ButtomArmR',
+  /** 手势切换 0默认~1手势二 */
+  ARM_GESTURE_SWITCH: 'gestureSwitch',
+  /** 手势二小臂旋转 -10~10 */
+  ARM_FOREARM: 'forearmR',
+  /** 手势二大臂伸展 -10~10 */
+  ARM_UPPER_ARM: 'upperarmR',
 } as const
 
 /** 口型同步配置 */

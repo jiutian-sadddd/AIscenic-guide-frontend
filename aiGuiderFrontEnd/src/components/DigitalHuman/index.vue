@@ -22,40 +22,43 @@
 
       <!-- 降级：静态 SVG (当 SDK 不加载时) -->
       <div v-if="showFallback" class="dh-avatar dh-fallback">
-        <svg
-          viewBox="0 0 200 240"
-          xmlns="http://www.w3.org/2000/svg"
-          class="dh-svg"
-        >
-          <line x1="170" y1="30" x2="170" y2="130" stroke="#5a4a3a" stroke-width="3" />
-          <rect x="155" y="15" width="35" height="25" rx="3" fill="#e74c3c" />
-          <text x="172" y="33" font-size="10" fill="white" text-anchor="middle" font-weight="bold">导游</text>
-          <ellipse cx="100" cy="38" rx="42" ry="8" fill="#5a4a3a" />
-          <rect x="70" y="10" width="60" height="30" rx="8" fill="#5a4a3a" />
-          <rect x="65" y="28" width="70" height="10" rx="4" fill="#6b5b4a" />
-          <ellipse cx="100" cy="65" rx="35" ry="38" fill="#ffe0bd" />
-          <g class="dh-eyes-fallback">
-            <ellipse cx="88" cy="60" rx="5" ry="6" fill="#333" />
-            <ellipse cx="112" cy="60" rx="5" ry="6" fill="#333" />
-            <circle cx="89" cy="57" r="1.5" fill="white" />
-            <circle cx="113" cy="57" r="1.5" fill="white" />
-          </g>
-          <ellipse cx="78" cy="72" rx="7" ry="4" fill="#ffb3b3" opacity="0.5" />
-          <ellipse cx="122" cy="72" rx="7" ry="4" fill="#ffb3b3" opacity="0.5" />
-          <g class="dh-mouth-fallback" :class="{ 'dh-mouth--speaking': isSpeaking }">
-            <ellipse cx="100" cy="78" rx="6" ry="4" fill="#e88b8b" />
-          </g>
-          <rect x="72" y="100" width="56" height="55" rx="10" fill="#4a90d9" />
-          <polygon points="85,100 100,118 115,100" fill="white" />
-          <rect x="126" y="100" width="16" height="8" rx="4" fill="#ffe0bd" transform="rotate(20, 134, 104)" />
-          <circle cx="148" cy="92" r="5" fill="#ffe0bd" />
-          <rect x="80" y="155" width="18" height="40" rx="8" fill="#4a4a5a" />
-          <rect x="102" y="155" width="18" height="40" rx="8" fill="#4a4a5a" />
-          <rect x="76" y="190" width="26" height="10" rx="5" fill="#333" />
-          <rect x="98" y="190" width="26" height="10" rx="5" fill="#333" />
-          <rect x="78" y="120" width="44" height="16" rx="3" fill="white" opacity="0.9" />
-          <text x="100" y="132" font-size="8" fill="#4a90d9" text-anchor="middle" font-weight="bold">AI 导览员</text>
-        </svg>
+        <div class="dh-fallback__inner">
+          <svg
+            viewBox="0 0 200 240"
+            xmlns="http://www.w3.org/2000/svg"
+            class="dh-svg"
+          >
+            <line x1="170" y1="30" x2="170" y2="130" stroke="#5a4a3a" stroke-width="3" />
+            <rect x="155" y="15" width="35" height="25" rx="3" fill="#e74c3c" />
+            <text x="172" y="33" font-size="10" fill="white" text-anchor="middle" font-weight="bold">导游</text>
+            <ellipse cx="100" cy="38" rx="42" ry="8" fill="#5a4a3a" />
+            <rect x="70" y="10" width="60" height="30" rx="8" fill="#5a4a3a" />
+            <rect x="65" y="28" width="70" height="10" rx="4" fill="#6b5b4a" />
+            <ellipse cx="100" cy="65" rx="35" ry="38" fill="#ffe0bd" />
+            <g class="dh-eyes-fallback">
+              <ellipse cx="88" cy="60" rx="5" ry="6" fill="#333" />
+              <ellipse cx="112" cy="60" rx="5" ry="6" fill="#333" />
+              <circle cx="89" cy="57" r="1.5" fill="white" />
+              <circle cx="113" cy="57" r="1.5" fill="white" />
+            </g>
+            <ellipse cx="78" cy="72" rx="7" ry="4" fill="#ffb3b3" opacity="0.5" />
+            <ellipse cx="122" cy="72" rx="7" ry="4" fill="#ffb3b3" opacity="0.5" />
+            <g class="dh-mouth-fallback" :class="{ 'dh-mouth--speaking': isSpeaking }">
+              <ellipse cx="100" cy="78" rx="6" ry="4" fill="#e88b8b" />
+            </g>
+            <rect x="72" y="100" width="56" height="55" rx="10" fill="#4a90d9" />
+            <polygon points="85,100 100,118 115,100" fill="white" />
+            <rect x="126" y="100" width="16" height="8" rx="4" fill="#ffe0bd" transform="rotate(20, 134, 104)" />
+            <circle cx="148" cy="92" r="5" fill="#ffe0bd" />
+            <rect x="80" y="155" width="18" height="40" rx="8" fill="#4a4a5a" />
+            <rect x="102" y="155" width="18" height="40" rx="8" fill="#4a4a5a" />
+            <rect x="76" y="190" width="26" height="10" rx="5" fill="#333" />
+            <rect x="98" y="190" width="26" height="10" rx="5" fill="#333" />
+            <rect x="78" y="120" width="44" height="16" rx="3" fill="white" opacity="0.9" />
+            <text x="100" y="132" font-size="8" fill="#4a90d9" text-anchor="middle" font-weight="bold">灵仙儿</text>
+          </svg>
+          <span class="dh-fallback__label">灵仙儿</span>
+        </div>
       </div>
 
       <!-- ==========================================
@@ -70,7 +73,7 @@
           :action="s.action"
           :duration="s.duration || 6000"
           :visible="true"
-          :style="{ top: `${idx * 50 + 5}px` }"
+          :style="{ top: `${idx * 70}px` }"
           @action="onSuggestionAction"
           @dismiss="onSuggestionDismiss(idx)"
         />
@@ -79,7 +82,7 @@
       <!-- 加载指示 -->
       <div v-if="!live2dReady && !showFallback" class="dh-loading">
         <div class="dh-loading__spinner" />
-        <span class="dh-loading__text">AI 导览员加载中...</span>
+        <span class="dh-loading__text">灵仙儿加载中...</span>
       </div>
     </div>
 
@@ -93,10 +96,10 @@
       />
     </div>
 
-    <!-- 字幕 -->
-    <div class="dh-subtitle" v-if="displayText">
+    <!-- 字幕（已禁用） -->
+    <!-- <div class="dh-subtitle" v-if="displayText">
       <span class="dh-subtitle__text">{{ displayText }}</span>
-    </div>
+    </div> -->
 
     <!-- 状态指示 -->
     <div class="dh-status">
@@ -130,10 +133,12 @@ interface DigitalHumanProps {
   sentiment?: 'positive' | 'negative' | 'neutral'
   /** 对话建议列表 */
   suggestions?: DigitalHumanSuggestion[]
-  /** Live2D 模型路径 */
-  modelPath?: string
-  /** Live2D 动画路径 */
-  animationPath?: string
+  /** 模型目录 URL (包含 .model3.json 的目录) */
+  modelDir?: string
+  /** model3.json 文件名 */
+  modelJsonName?: string
+  /** 动画映射 { 名称: motion3.json URL } */
+  motions?: Record<string, string>
 }
 
 const props = withDefaults(defineProps<DigitalHumanProps>(), {
@@ -144,8 +149,12 @@ const props = withDefaults(defineProps<DigitalHumanProps>(), {
   sentiment: 'neutral',
   isIdle: true,
   suggestions: () => [],
-  modelPath: '/live2d/灵仙儿.cmo3',
-  animationPath: '/live2d/Untitled Animation.can3',
+  modelDir: '/live2d/lingxianer/',
+  modelJsonName: 'lingxianer.model3.json',
+  motions: () => ({
+    hello: '/live2d/motions/hello.motion3.json',
+    idle: '/live2d/motions/idle.motion3.json',
+  }),
 })
 
 const emit = defineEmits<{
@@ -168,8 +177,17 @@ const live2dReady = ref(false)
 // useLive2D
 // ============================================================
 const live2d = useLive2D({
-  modelPath: props.modelPath,
-  animationPath: props.animationPath,
+  modelSetup: {
+    modelDir: props.modelDir,
+    modelJsonName: props.modelJsonName,
+    motions: props.motions,
+    // 缩放: 1.0 = 适配画布, >1.0 = 放大, <1.0 = 缩小
+    scale: 1.1,
+    // 偏移 (CSS 逻辑像素): 正值 offsetX → 右, 正值 offsetY → 上
+    // 可根据人物在模型画布中的实际位置微调这两个值
+    offsetX: 220,
+    offsetY: 190,
+  },
   canvasRef: live2dCanvasRef,
   autoIdle: true,
   lookTracking: {
@@ -177,7 +195,7 @@ const live2d = useLive2D({
     headSensitivity: 8,
     eyeSensitivity: 12,
     smoothing: 0.12,
-    maxHeadAngle: 25,
+    maxHeadAngle: 20,
   },
   lipSync: {
     smoothing: 0.35,
@@ -212,10 +230,11 @@ onMounted(async () => {
 
   // 设置降级超时 (2.5 秒后如果 Live2D 还没就绪, 显示 SVG)
   fallbackTimer = setTimeout(() => {
-    if (!live2dReady.value && !live2d.isError.value) {
+    if (!live2dReady.value) {
+      console.warn('[DigitalHuman] Live2D 加载超时，切换到降级 SVG')
       showFallback.value = true
     }
-  }, 2500)
+  }, 3000)
 
   // 重试初始化 (canvas 可能还未渲染)
   let retries = 0
@@ -226,6 +245,19 @@ onMounted(async () => {
     await live2d.init()
 
     if (live2d.isReady.value) {
+      // 额外检查：canvas 是否有有效尺寸
+      const canvas = live2dCanvasRef.value
+      if (canvas && (canvas.width <= 0 || canvas.height <= 0)) {
+        console.warn('[DigitalHuman] canvas 尺寸为 0，等待布局重试...')
+        if (retries < maxRetries) {
+          retries++
+          setTimeout(tryInit, 500)
+        } else {
+          showFallback.value = true
+        }
+        return
+      }
+
       live2dReady.value = true
       showFallback.value = false
       if (fallbackTimer) clearTimeout(fallbackTimer)
@@ -236,11 +268,13 @@ onMounted(async () => {
       // 播放 hello 动画
       setTimeout(() => live2d.playHello(), 300)
     } else if (live2d.isError.value) {
+      console.warn('[DigitalHuman] Live2D 初始化错误，切换到降级 SVG:', live2d.errorMessage.value)
       showFallback.value = true
     } else if (retries < maxRetries) {
       retries++
       setTimeout(tryInit, 500)
     } else {
+      console.warn('[DigitalHuman] 达到最大重试次数，切换到降级 SVG')
       showFallback.value = true
     }
   }
@@ -329,6 +363,7 @@ watch(
   (newText) => {
     if (!newText) {
       displayText.value = ''
+      live2d.stopStreamLipSync()
       return
     }
 
@@ -350,6 +385,18 @@ watch(
         typingTimer = null
       }
     }, 80)
+  },
+)
+
+// ============================================================
+// 监听 isIdle: AI 输出结束 → 口型停止
+// ============================================================
+watch(
+  () => props.isIdle,
+  (idle) => {
+    if (idle && live2dReady.value) {
+      live2d.stopStreamLipSync()
+    }
   },
 )
 
@@ -403,6 +450,8 @@ defineExpose({
   playMotion: (name: string) => live2d.playMotion(name),
   connectAudio: (audio: HTMLAudioElement) => live2d.connectAudio(audio),
   disconnectAudio: () => live2d.disconnectAudio(),
+  startStreamLipSync: () => live2d.startStreamLipSync(),
+  stopStreamLipSync: () => live2d.stopStreamLipSync(),
   getIsSpeaking: () => isSpeaking.value,
   getLive2DReady: () => live2dReady.value,
 })
@@ -439,15 +488,15 @@ defineExpose({
 // ===== Live2D 舞台 =====
 .dh-stage {
   position: relative;
-  width: 280px;
-  height: 320px;
+  width: 400px;
+  height: 500px;
   display: flex;
   align-items: center;
   justify-content: center;
 
-  @media (max-width: 360px) {
-    width: 240px;
-    height: 280px;
+  @media (max-width: 440px) {
+    width: 340px;
+    height: 440px;
   }
 }
 
@@ -468,24 +517,49 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 2; // 确保在 canvas 上方可见
+
+  &__inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #667eea;
+    letter-spacing: 0.5px;
+  }
 
   .dh-svg {
-    width: 80%;
-    height: 80%;
+    width: 160px;
+    height: 192px;
     filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+    background: radial-gradient(ellipse at center, rgba(102, 126, 234, 0.06) 0%, transparent 70%);
+    border-radius: 16px;
   }
 }
 
 // ===== 建议气泡容器 =====
 .dh-suggestions {
-  position: absolute;
-  left: -150px;
-  top: 15px;
-  z-index: 5;
+  position: fixed;
+  left: 16px;
+  bottom: 90px; // 刚好在底部输入栏上方
+  z-index: 50;
   pointer-events: auto;
 
+  @media (max-width: 420px) {
+    left: 50%;
+    bottom: 80px;
+    transform: translateX(-50%);
+  }
+
   @media (max-width: 360px) {
-    left: -130px;
+    left: 50%;
+    bottom: 75px;
+    transform: translateX(-50%);
   }
 }
 

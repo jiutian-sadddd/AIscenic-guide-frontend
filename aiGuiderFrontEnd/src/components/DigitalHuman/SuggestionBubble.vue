@@ -137,6 +137,38 @@ function handleClick(): void {
   }
 }
 
+// 移动端：气泡移到数字人上方，避免超出屏幕左侧
+@media (max-width: 420px) {
+  .suggestion-bubble {
+    left: 50%;
+    top: -45px;
+    transform: translateX(-50%);
+    max-width: 180px;
+
+    &__inner {
+      padding: 8px 12px;
+    }
+
+    &__text {
+      font-size: 12px;
+    }
+
+    // 小三角改为指向下方 (数字人)
+    &__arrow {
+      right: auto;
+      left: 50%;
+      top: auto;
+      bottom: -6px;
+      transform: translateX(-50%);
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 7px solid rgba(255, 255, 255, 0.75);
+      border-bottom: none;
+      filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.04));
+    }
+  }
+}
+
 // ===== Transition =====
 .bubble-fade-enter-active {
   transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);

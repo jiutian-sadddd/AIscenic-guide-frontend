@@ -188,6 +188,7 @@ export function useTTS() {
     autoTtsEnabled,
     currentVoice,
     isSpeaking,
+    currentAudio,
     // actions
     toggleAutoTts,
     playTts,

@@ -333,20 +333,20 @@ export interface ASRResponse {
   message?: string
 }
 
-/** 会话（AI 端格式） */
+/** 会话（AI 端格式，匹配 GET /ai/history 返回） */
 export interface AISession {
   sessionId: string
   title: string
   messageCount: number
-  lastMessage: string
+  createTime: string
   lastUpdateTime: string
 }
 
-/** AI 历史消息 */
+/** AI 历史消息（匹配 GET /ai/history/{sessionId} 返回，字段名 type 非 role） */
 export interface AIHistoryMessage {
-  role: 'user' | 'assistant'
+  type: 'user' | 'assistant'
   content: string
-  timestamp?: string
+  timestamp?: string | null
 }
 
 /** 情感标签（数字人驱动） */

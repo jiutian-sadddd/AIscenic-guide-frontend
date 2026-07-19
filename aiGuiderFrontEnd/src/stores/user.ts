@@ -41,6 +41,29 @@ export const useUserStore = defineStore('user', () => {
       status: 'active',
       createTime: new Date().toISOString(),
     }
+    // 持久化用户信息供 fetchCurrentUser 恢复
+    try {
+      localStorage.setItem('user', JSON.stringify(user.value))
+    } catch { /* ignore */ }
+  }
+
+  // ==================== 当前用户 ====================
+  /** 从本地 token 恢复用户状态（App.vue onMounted 调用） */
+  async function fetchCurrentUser() {
+    const savedToken = localStorage.getItem('token')
+    if (!savedToken) return
+
+    token.value = savedToken
+
+    // 尝试从 localStorage 恢复用户基本信息
+    try {
+      const savedUser = localStorage.getItem('user')
+      if (savedUser) {
+        user.value = JSON.parse(savedUser) as UserInfo
+      }
+    } catch {
+      // 静默失败，用户可正常使用（token 已恢复）
+    }
   }
 
   // ==================== 偏好设置 ====================
@@ -69,6 +92,7 @@ export const useUserStore = defineStore('user', () => {
     isAdmin,
     isSuperAdmin,
     userId,
+    fetchCurrentUser,
     loginWithPhone: loginAsUser, // 向后兼容别名
     loginAsUser,
     loginAsAdmin,

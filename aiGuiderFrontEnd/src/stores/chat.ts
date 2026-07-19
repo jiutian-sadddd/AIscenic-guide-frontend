@@ -70,8 +70,8 @@ export const useChatStore = defineStore('chat', () => {
     const { data } = await chatApi.getSessionMessages(sessionId)
     const aiMessages = data.data || []
     messages.value = aiMessages.map((msg) => ({
-      message_id: `${msg.role}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      role: msg.role,
+      message_id: `${msg.type}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      role: msg.type,
       content: msg.content,
       audio_url: null,
       emotion: null,
@@ -123,8 +123,8 @@ export const useChatStore = defineStore('chat', () => {
     try {
       const aiMessages = await aiApi.getSessionMessages(sessionId)
       messages.value = aiMessages.map((msg) => ({
-        message_id: `${msg.role}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        role: msg.role,
+        message_id: `${msg.type}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        role: msg.type,
         content: msg.content,
         audio_url: null,
         emotion: null,

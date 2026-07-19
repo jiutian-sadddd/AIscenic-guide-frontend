@@ -74,8 +74,6 @@
         :sentiment="chatStore.currentSentiment"
         :is-idle="!chatStore.isStreaming && !chatStore.isLoading"
         :suggestions="currentSuggestions"
-        model-path="/live2d/灵仙儿.cmo3"
-        animation-path="/live2d/Untitled Animation.can3"
         @speaking-start="onDHSpeakingStart"
         @speaking-end="onDHSpeakingEnd"
         @suggestion-action="onSuggestionAction"
@@ -88,7 +86,7 @@
       <div v-if="!hasMessages && !chatStore.isStreaming" class="cv-empty">
         <div class="cv-empty__hero">
           <div class="cv-empty__hero-icon">🏯</div>
-          <h2>您好，我是小导</h2>
+          <h2>您好，我是灵仙儿</h2>
           <p>我已经研读了灵山景区所有资料，关于美食、景点、路线，尽管问我</p>
         </div>
         <!-- 快捷提问 -->
@@ -135,6 +133,20 @@
               <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" />
             </svg>
           </button>
+          <!-- 内联「猜你想问」按钮 -->
+          <div
+            v-if="msg.role === 'assistant' && getInlineSuggestions(msg.content).length > 0"
+            class="cv-inline-suggestions"
+          >
+            <button
+              v-for="(s, si) in getInlineSuggestions(msg.content)"
+              :key="si"
+              class="cv-inline-suggestion-btn"
+              @click="sendMessage(s.action || s.text)"
+            >
+              {{ s.icon }} {{ s.text }}
+            </button>
+          </div>
         </div>
         <div v-if="msg.role === 'user'" class="cv-msg__avatar cv-msg__avatar--user">
           <svg viewBox="0 0 40 40" width="36" height="36">
@@ -187,7 +199,7 @@
             type="text"
             :placeholder="modePlaceholder"
             maxlength="500"
-            @keydown.enter="sendMessage(inputText)"
+            @keydown="onInputKeydown"
           />
           <button
             class="cv-send-btn"
@@ -316,33 +328,80 @@ interface ChatSuggestion {
 }
 const currentSuggestions = ref<ChatSuggestion[]>([])
 
+/**
+ * 从 AI 回复内容中解析「💡猜你想问」部分的建议问题
+ */
+function parseSuggestionsFromContent(content: string): ChatSuggestion[] {
+  const match = content.match(/💡猜你想问[：:\s]*([\s\S]*)$/)
+  if (!match || !match[1]) return []
+
+  const raw = match[1]
+  // 匹配各种编号格式: 1. / 1、/ - / 1)
+  const lines = raw
+    .split(/\n/)
+    .map((l) => l.replace(/^[\s]*(?:\d+[.、)\s]+|[-*]\s*)/, '').trim())
+    .filter((l) => l.length > 2 && l.length < 50)
+
+  const icons = ['🏔', '🗺', '🍜', '🔍', '✨', '📸', '🎯', '💡']
+  return lines.slice(0, 3).map((text, i) => ({
+    text,
+    icon: icons[i % icons.length],
+    action: text,
+    duration: 8000,
+  }))
+}
+
 /** 根据对话状态生成建议 */
 function generateSuggestions(): void {
   const suggestions: ChatSuggestion[] = []
 
+  if (chatStore.isStreaming) {
+    // 流式中：不显示建议
+    currentSuggestions.value = []
+    return
+  }
+
   if (!hasMessages.value) {
-    // 欢迎态：推荐常用问题
+    // 欢迎态：推荐常用问题（浮窗形式）
     suggestions.push(
       { text: '灵山有什么必去的景点？', icon: '🏔', action: '灵山有什么必去的景点？', duration: 8000 },
       { text: '帮我推荐游览路线吧', icon: '🗺', action: '帮我推荐游览路线吧', duration: 8000 },
       { text: '附近有什么好吃的？', icon: '🍜', action: '附近有什么好吃的？', duration: 7000 },
     )
-  } else if (chatStore.isStreaming) {
-    // 流式中：不显示建议
-    currentSuggestions.value = []
-    return
-  } else {
-    // 对话中：快捷追问
-    const lastMsg = chatStore.sortedMessages.value[chatStore.sortedMessages.value.length - 1]
-    if (lastMsg && lastMsg.role === 'assistant') {
-      suggestions.push(
-        { text: '能详细说说吗？', icon: '🔍', action: '能详细说说吗？', duration: 5000 },
-        { text: '还有其他的吗？', icon: '✨', action: '还有其他的吗？', duration: 5000 },
-      )
-    }
   }
+  // 对话中的建议改为在消息区内联渲染，不再用浮窗
+  currentSuggestions.value = suggestions
 
   currentSuggestions.value = suggestions
+}
+
+/** 模板用：从消息内容提取内联建议（非响应式，纯函数） */
+function getInlineSuggestions(content: string): ChatSuggestion[] {
+  return parseSuggestionsFromContent(content)
+}
+
+function onInputKeydown(e: KeyboardEvent): void {
+  if (e.key === 'Enter') {
+    if (e.ctrlKey) {
+      e.preventDefault()
+      testLipSync()
+    } else if (!e.shiftKey) {
+      sendMessage(inputText.value)
+    }
+  }
+}
+
+/** 测试口型: Ctrl+Enter 触发 3 秒模拟 */
+function testLipSync(): void {
+  const text = inputText.value.trim() || '你好，欢迎来到灵山胜境，我是您的AI导览员灵仙儿'
+  console.log('[testLipSync] firing with text:', text.substring(0, 20))
+  currentSubtitle.value = text
+  digitalHumanRef.value?.startStreamLipSync?.()
+  setTimeout(() => {
+    digitalHumanRef.value?.stopStreamLipSync?.()
+    currentSubtitle.value = ''
+    console.log('[testLipSync] stopped')
+  }, 4000)
 }
 
 /** 建议气泡点击 → 填充输入框并发送 */
@@ -536,6 +595,41 @@ watch(
   { immediate: false },
 )
 
+// ==================== TTS 音频 → Live2D 口型联动 ====================
+watch(
+  () => tts.currentAudio.value,
+  (audio) => {
+    if (audio && digitalHumanRef.value) {
+      digitalHumanRef.value.connectAudio(audio)
+    }
+  },
+)
+
+// 流式文本 → 字幕 & 口型模拟（无音频时的降级）
+watch(
+  () => chatStore.streamingContent,
+  (text) => {
+    if (text) {
+      currentSubtitle.value = text
+    }
+  },
+)
+
+// 流式结束 → 清字幕
+watch(
+  () => chatStore.isStreaming,
+  (streaming) => {
+    if (!streaming) {
+      // 延迟清字幕，给 TTS 播放留时间
+      setTimeout(() => {
+        if (!tts.currentAudio.value) {
+          currentSubtitle.value = ''
+        }
+      }, 2000)
+    }
+  },
+)
+
 // ==================== 语音设置 ====================
 function onVoiceChange(voiceId: string): void {
   chatStore.setVoiceId(voiceId)
@@ -710,23 +804,29 @@ $accent: #f59e0b;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 40px 20px;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 0 20px 40px;
   text-align: center;
 
+  &__hero {
+    margin-top: -25px;
+  }
+
   &__hero-icon {
-    width: 72px;
-    height: 72px;
-    border-radius: 20px;
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
     background: linear-gradient(135deg, $accent, #d97706);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 36px;
+    font-size: 32px;
+    line-height: 1;
     color: #fff;
     box-shadow: 0 8px 24px rgba(245, 158, 11, 0.25);
-    margin-bottom: 8px;
+    margin: 0 auto 8px;
+    text-align: center;
   }
 
   h2 {
@@ -844,6 +944,30 @@ $accent: #f59e0b;
   content: '|';
   animation: cursorBlink 0.8s infinite;
   color: $primary;
+}
+
+// 内联「猜你想问」按钮
+.cv-inline-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.cv-inline-suggestion-btn {
+  padding: 6px 14px;
+  border-radius: 16px;
+  border: 1px solid #e7e5e4;
+  background: #faf9f7;
+  font-size: 13px;
+  color: #57534e;
+  cursor: pointer;
+  transition: all 0.2s;
+  &:hover {
+    background: #fff;
+    border-color: $accent;
+    color: $accent;
+  }
 }
 
 @keyframes cursorBlink {
