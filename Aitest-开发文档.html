@@ -1,0 +1,340 @@
+﻿<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>灵山智慧导游 - 开发文档</title>
+    <style>
+        body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; max-width: 1200px; margin: 0 auto; padding: 40px 20px; background: #fafafa; color: #1a1a1a; }
+        h1 { border-bottom: 3px solid #6366f1; padding-bottom: 12px; font-size: 28px; }
+        h2 { color: #6366f1; margin-top: 40px; font-size: 20px; border-left: 4px solid #6366f1; padding-left: 12px; }
+        .meta { color: #888; font-size: 13px; margin-bottom: 8px; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        th { background: #6366f1; color: #fff; padding: 10px 14px; text-align: left; font-size: 13px; }
+        td { padding: 10px 14px; border-bottom: 1px solid #f0f0f0; font-size: 13px; vertical-align: top; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background: #f8f7ff; }
+        .fn { font-weight: 600; color: #3730a3; font-family: "Fira Code", monospace; font-size: 14px; }
+        .ln { color: #888; font-size: 12px; white-space: nowrap; }
+        .cm { color: #555; line-height: 1.6; font-size: 13px; }
+        .sec { background: #fff; padding: 24px; border-radius: 12px; margin: 16px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+        .summary { background: linear-gradient(135deg, #eef2ff, #fef3c7); padding: 20px; border-radius: 12px; margin: 20px 0; }
+        .summary h3 { margin-top: 0; color: #3730a3; }
+        .summary ul { margin: 8px 0; padding-left: 20px; }
+        .summary li { margin: 4px 0; }
+        .idx { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .idx a { display: block; padding: 8px 12px; background: #fff; border-radius: 6px; text-decoration: none; color: #6366f1; font-size: 13px; border: 1px solid #e5e7eb; }
+        .idx a:hover { background: #eef2ff; border-color: #6366f1; }
+        code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+        .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-left: 6px; }
+        .tag-core { background: #fdf2f8; color: #be185d; }
+        .tag-voice { background: #ecfdf5; color: #047857; }
+        .tag-kb { background: #eff6ff; color: #1d4ed8; }
+        .tag-sess { background: #fef3c7; color: #92400e; }
+        .tag-tts { background: #f3e8ff; color: #7c3aed; }
+        .tag-util { background: #f1f5f9; color: #475569; }
+    </style>
+</head>
+<body>
+<h1>灵山智慧导游 - 小导 开发文档</h1>
+<p class="meta">源文件：<code>Aitest.html</code> | 总行数：1979 | 脚本区：第 695 ~ 1979 行 | 函数总数：58</p>
+
+<div class="summary">
+    <h3>项目概览</h3>
+    <ul>
+        <li><strong>定位</strong>：灵山景区 AI 智能导游前端单文件应用（Tailwind + 原生 JS + Marked.js）</li>
+        <li><strong>功能模块</strong>：情感驱动数字人、Markdown 预处理、语音输入（WAV+ASR）、TTS 朗读、偏好管理、会话管理、知识库管理、聊天核心（SSE 流式）</li>
+        <li><strong>后端 API</strong>：<code>/api/chat</code> / <code>/api/asr</code> / <code>/api/tts</code> / <code>/api/sessions</code> / <code>/api/preferences</code> / <code>/api/kb/*</code></li>
+    </ul>
+</div>
+
+<h2>函数索引（按行号排序）</h2>
+<div class="sec">
+<div class="idx">
+<a href="#f1">detectSentiment <span class="ln">:707</span></a>
+<a href="#f2">updateDigitalHuman <span class="ln">:714</span></a>
+<a href="#f3">showLoader <span class="ln">:727</span></a>
+<a href="#f4">hideLoader <span class="ln">:728</span></a>
+<a href="#f5">withLoader <span class="ln">:729</span></a>
+<a href="#f6">preprocessMarkdown <span class="ln">:736</span></a>
+<a href="#f7">toggleSidebar <span class="ln">:789</span></a>
+<a href="#f8">uploadKbFile <span class="ln">:797</span></a>
+<a href="#f9">refreshKbStats <span class="ln">:836</span></a>
+<a href="#f10">deleteAllKb <span class="ln">:859</span></a>
+<a href="#f11">clearRerankCache <span class="ln">:902</span></a>
+<a href="#f12">quickAsk <span class="ln">:934</span></a>
+<a href="#f13">hideWelcome <span class="ln">:935</span></a>
+<a href="#f14">toggleVoice <span class="ln">:952</span></a>
+<a href="#f15">startRecording <span class="ln">:960</span></a>
+<a href="#f16">doResample <span class="ln">:1002</span></a>
+<a href="#f17">encodeWAV <span class="ln">:1040</span></a>
+<a href="#f18">onVoiceDone <span class="ln">:1067</span></a>
+<a href="#f19">updateVoiceButtons <span class="ln">:1149</span></a>
+<a href="#f20">updateVoiceStatus <span class="ln">:1178</span></a>
+<a href="#f21">showVoiceOverlay <span class="ln">:1186</span></a>
+<a href="#f22">stopRecording <span class="ln">:1213</span></a>
+<a href="#f23">removeVoiceOverlay <span class="ln">:1221</span></a>
+<a href="#f24">attachSpeakerButtons <span class="ln">:1229</span></a>
+<a href="#f25">syncSpeakerButton <span class="ln">:1263</span></a>
+<a href="#f26">speakMessage <span class="ln">:1288</span></a>
+<a href="#f27">stopAllTts <span class="ln">:1321</span></a>
+<a href="#f28">toggleAutoTts <span class="ln">:1349</span></a>
+<a href="#f29">updateToggleIcon <span class="ln">:1364</span></a>
+<a href="#f30">polishText <span class="ln">:1388</span></a>
+<a href="#f31">naturalizePair <span class="ln">:1427</span></a>
+<a href="#f32">playTts <span class="ln">:1447</span></a>
+<a href="#f33">speakTextBrowser <span class="ln">:1491</span></a>
+<a href="#f34">showVoiceSettings <span class="ln">:1512</span></a>
+<a href="#f35">selectVoice <span class="ln">:1535</span></a>
+<a href="#f36">saveVoiceSettings <span class="ln">:1547</span></a>
+<a href="#f37">showPreferenceModal <span class="ln">:1558</span></a>
+<a href="#f38">togglePrefOption <span class="ln">:1581</span></a>
+<a href="#f39">savePreferences <span class="ln">:1586</span></a>
+<a href="#f40">skipPreferences <span class="ln">:1601</span></a>
+<a href="#f41">showPrefModalIfFirstTime <span class="ln">:1606</span></a>
+<a href="#f42">generateSessionId <span class="ln">:1613</span></a>
+<a href="#f43">clearSessionCache <span class="ln">:1618</span></a>
+<a href="#f44">createNewSession <span class="ln">:1621</span></a>
+<a href="#f45">loadSessionList <span class="ln">:1643</span></a>
+<a href="#f46">renderSessionList <span class="ln">:1672</span></a>
+<a href="#f47">switchSession <span class="ln">:1695</span></a>
+<a href="#f48">updateActiveCard <span class="ln">:1757</span></a>
+<a href="#f49">deleteSession <span class="ln">:1764</span></a>
+<a href="#f50">showConfirmModal <span class="ln">:1780</span></a>
+<a href="#f51">setMode <span class="ln">:1798</span></a>
+<a href="#f52">sendChat <span class="ln">:1810</span></a>
+<a href="#f53">flushRender <span class="ln">:1844</span></a>
+<a href="#f54">escapeHtml <span class="ln">:1903</span></a>
+<a href="#f55">cleanupSingleTitle <span class="ln">:1909</span></a>
+<a href="#f56">fmtTime <span class="ln">:1917</span></a>
+<a href="#f57">init <span class="ln">:1929</span></a>
+<a href="#f58">showWelcomePage <span class="ln">:1961</span></a>
+</div>
+</div>
+
+<h2>1. 情感驱动数字人 <span class="tag tag-core">情绪</span></h2>
+<div class="sec">
+<table>
+<tr><th>#</th><th>函数名</th><th>行号</th><th>说明</th><th>注释摘要</th></tr>
+<tr><td>1</td><td class="fn"><a name="f1"></a>detectSentiment</td><td class="ln">707</td><td class="cm">分析用户输入情感，返回情感标签</td><td class="cm">情感标签驱动数字人表情</td></tr>
+<tr><td>2</td><td class="fn"><a name="f2"></a>updateDigitalHuman</td><td class="ln">714</td><td class="cm">根据情感标签切换数字人表情/动画</td><td class="cm">—</td></tr>
+</table>
+</div>
+
+<h2>2. 全局加载条 <span class="tag tag-util">工具</span></h2>
+<div class="sec">
+<table>
+<tr><th>#</th><th>函数名</th><th>行号</th><th>说明</th><th>注释摘要</th></tr>
+<tr><td>3</td><td class="fn"><a name="f3"></a>showLoader</td><td class="ln">727</td><td class="cm">显示顶部加载条</td><td class="cm">====== 全局加载条 ======</td></tr>
+<tr><td>4</td><td class="fn"><a name="f4"></a>hideLoader</td><td class="ln">728</td><td class="cm">隐藏顶部加载条</td><td class="cm">—</td></tr>
+<tr><td>5</td><td class="fn"><a name="f5"></a>withLoader</td><td class="ln">729</td><td class="cm">执行异步任务期间自动显示/隐藏加载条</td><td class="cm">—</td></tr>
+</table>
+</div>
+
+<h2>3. Markdown 预处理 <span class="tag tag-util">工具</span></h2>
+<div class="sec">
+<table>
+<tr><th>#</th><th>函数名</th><th>行号</th><th>说明</th><th>注释摘要</th></tr>
+<tr><td>6</td><td class="fn"><a name="f6"></a>preprocessMarkdown</td><td class="ln">736</td><td class="cm">将 AI 输出的各种不一致格式统一规范化为 marked.js 可正确渲染的 Markdown。含 9 个步骤：保护猜你想问、后端\n转换(Step 0.5)、去乱码、处理列表粘连、句末后加空行、行首属性名、属性转 md 列表、段前去空行、去多余编号等</td><td class="cm">breaks:true; Step 0~7; preprocessMarkdown 已确保 ### 前有空行</td></tr>
+</table>
+</div>
+
+<h2>4. 侧边栏 & 知识库管理 <span class="tag tag-kb">知识库</span></h2>
+<div class="sec">
+<table>
+<tr><th>#</th><th>函数名</th><th>行号</th><th>说明</th><th>注释摘要</th></tr>
+<tr><td>7</td><td class="fn"><a name="f7"></a>toggleSidebar</td><td class="ln">789</td><td class="cm">移动端侧边栏显示/隐藏切换</td><td class="cm">—</td></tr>
+<tr><td>8</td><td class="fn"><a name="f8"></a>uploadKbFile</td><td class="ln">797</td><td class="cm">上传知识库文件</td><td class="cm">修复: 防止 onVoiceDone 重入</td></tr>
+<tr><td>9</td><td class="fn"><a name="f9"></a>refreshKbStats</td><td class="ln">836</td><td class="cm">刷新知识库统计信息</td><td class="cm">/** 刷新知识库统计 */</td></tr>
+<tr><td>10</td><td class="fn"><a name="f10"></a>deleteAllKb</td><td class="ln">859</td><td class="cm">清空全部知识库（危险操作）</td><td class="cm">/** 清空知识库（危险操作） */</td></tr>
+<tr><td>11</td><td class="fn"><a name="f11"></a>clearRerankCache</td><td class="ln">902</td><td class="cm">清空 Rerank 三级缓存，让下次提问重新走完整 Rerank 流程</td><td class="cm">JSDoc: 新文档入库/AI 回复异常时使用; 清完后第一次查询稍慢，之后缓存自动重建</td></tr>
+</table>
+</div>
+
+<h2>5. 快捷提问 <span class="tag tag-core">交互</span></h2>
+<div class="sec">
+<table>
+<tr><th>#</th><th>函数名</th><th>行号</th><th>说明</th><th>注释摘要</th></tr>
+<tr><td>12</td><td class="fn"><a name="f12"></a>quickAsk</td><td class="ln">934</td><td class="cm">点击快捷标签发送预置问题</td><td class="cm">====== 快捷提问 ======</td></tr>
+<tr><td>13</td><td class="fn"><a name="f13"></a>hideWelcome</td><td class="ln">935</td><td class="cm">隐藏欢迎页/新手引导</td><td class="cm">—</td></tr>
+</table>
+</div>
+
+<h2>6. 语音输入 <span class="tag tag-voice">语音</span></h2>
+<div class="sec">
+<table>
+<tr><th>#</th><th>函数名</th><th>行号</th><th>说明</th><th>注释摘要</th></tr>
+<tr><td>14</td><td class="fn"><a name="f14"></a>toggleVoice</td><td class="ln">952</td><td class="cm">麦克风按钮点击：启动/停止录音（防重入）</td><td class="cm">百度 ASR 限 60s, 留 5s margin; 修复: 防止 onVoiceDone 重入</td></tr>
+<tr><td>15</td><td class="fn"><a name="f15"></a>startRecording</td><td class="ln">960</td><td class="cm">启动 MediaRecorder 录音、显示录音浮层</td><td class="cm">修复: 彻底清理上次录音残留; 提高比特率提升 ASR 准确度</td></tr>
+<tr><td>16</td><td class="fn"><a name="f16"></a>doResample</td><td class="ln">1002</td><td class="cm">线性插值 + sinc 重采样到目标采样率</td><td class="cm">低通滤波防混叠 (截止频率 = 目标采样率 / 2 * 0.9); 窗函数 sinc 重采样</td></tr>
+<tr><td>17</td><td class="fn"><a name="f17"></a>encodeWAV</td><td class="ln">1040</td><td class="cm">将 PCM 数据编码为 WAV 格式 (16bit PCM)</td><td class="cm">音量归一化: 目标 85% 峰值，软限幅避免削波</td></tr>
+<tr><td>18</td><td class="fn"><a name="f18"></a>onVoiceDone</td><td class="ln">1067</td><td class="cm">停止录音 -> 编码 WAV -> POST /api/asr -> 自动填入并发送</td><td class="cm">点确定：停止录音 -> 编码 WAV -> POST API -> 显示结果; 音量归一化</td></tr>
+<tr><td>19</td><td class="fn"><a name="f19"></a>updateVoiceButtons</td><td class="ln">1149</td><td class="cm">更新麦克风按钮状态（录音中/空闲）</td><td class="cm">—</td></tr>
+<tr><td>20</td><td class="fn"><a name="f20"></a>updateVoiceStatus</td><td class="ln">1178</td><td class="cm">更新录音状态文字</td><td class="cm">—</td></tr>
+<tr><td>21</td><td class="fn"><a name="f21"></a>showVoiceOverlay</td><td class="ln">1186</td><td class="cm">显示全屏录音浮层</td><td class="cm">修复: 先清理旧 overlay 防止叠层</td></tr>
+<tr><td>22</td><td class="fn"><a name="f22"></a>stopRecording</td><td class="ln">1213</td><td class="cm">手动停止 MediaRecorder</td><td class="cm">—</td></tr>
+<tr><td>23</td><td class="fn"><a name="f23"></a>removeVoiceOverlay</td><td class="ln">1221</td><td class="cm">移除录音浮层、恢复麦克风按钮状态</td><td class="cm">录音结束/取消时恢复麦克风按钮状态</td></tr>
+</table>
+</div>
+
+<h2>7. TTS 语音朗读 <span class="tag tag-tts">朗读</span></h2>
+<div class="sec">
+<table>
+<tr><th>#</th><th>函数名</th><th>行号</th><th>说明</th><th>注释摘要</th></tr>
+<tr><td>24</td><td class="fn"><a name="f24"></a>attachSpeakerButtons</td><td class="ln">1229</td><td class="cm">为每条 AI 消息插入朗读按钮</td><td class="cm">为每条 AI 消息加上朗读按钮; 按钮重建后恢复全局朗读高亮状态</td></tr>
+<tr><td>25</td><td class="fn"><a name="f25"></a>syncSpeakerButton</td><td class="ln">1263</td><td class="cm">同步最后一条 AI 消息朗读按钮状态</td><td class="cm">JSDoc: 自动播放时由 playTts 调用，手动点击时由 speakMessage 调用; @param playing</td></tr>
+<tr><td>26</td><td class="fn"><a name="f26"></a>speakMessage</td><td class="ln">1288</td><td class="cm">手动点击朗读按钮（toggle 读/停）</td><td class="cm">JSDoc: 当前按钮正在朗读 -> 停止; 未朗读 -> 开始朗读; 高亮当前按钮</td></tr>
+<tr><td>27</td><td class="fn"><a name="f27"></a>stopAllTts</td><td class="ln">1321</td><td class="cm">停止所有 TTS 播放（音频 + 浏览器合成）</td><td class="cm">JSDoc: 停止所有 TTS 播放</td></tr>
+<tr><td>28</td><td class="fn"><a name="f28"></a>toggleAutoTts</td><td class="ln">1349</td><td class="cm">切换全局语音开关</td><td class="cm">JSDoc: 播放中点击 -> 停止+关闭自动; 空闲点击 -> 切换开/关</td></tr>
+<tr><td>29</td><td class="fn"><a name="f29"></a>updateToggleIcon</td><td class="ln">1364</td><td class="cm">更新全局语音开关图标颜色</td><td class="cm">JSDoc: @param enabled</td></tr>
+<tr><td>30</td><td class="fn"><a name="f30"></a>polishText</td><td class="ln">1388</td><td class="cm">TTS 文本润色：跳过 key:value 标题，只读正文；属性对自然化</td><td class="cm">JSDoc 大段策略; 移除猜你想问、属性名单读 value、去 markdown、key 值自然化、句号->省略号</td></tr>
+<tr><td>31</td><td class="fn"><a name="f31"></a>naturalizePair</td><td class="ln">1427</td><td class="cm">对单个 key:value 做自然语言转换</td><td class="cm">避免冗余："位置在通常位于xxx" -> "位置在xxx"</td></tr>
+<tr><td>32</td><td class="fn"><a name="f32"></a>playTts</td><td class="ln">1447</td><td class="cm">润色文字 -> 停止旧播放 -> 高亮按钮 -> 调后端 TTS -> 失败则浏览器 SpeechSynthesis 兜底</td><td class="cm">JSDoc: @param rawText @param isAuto; 自动播放时清除旧按钮状态/立即高亮; 后端失败时浏览器 TTS 兜底</td></tr>
+<tr><td>33</td><td class="fn"><a name="f33"></a>speakTextBrowser</td><td class="ln">1491</td><td class="cm">浏览器 SpeechSynthesis 兜底朗读</td><td class="cm">浏览器 TTS 结束/错误时清理按钮状态</td></tr>
+<tr><td>34</td><td class="fn"><a name="f34"></a>showVoiceSettings</td><td class="ln">1512</td><td class="cm">打开语音设置弹窗（选择音色）</td><td class="cm">—</td></tr>
+<tr><td>35</td><td class="fn"><a name="f35"></a>selectVoice</td><td class="ln">1535</td><td class="cm">在弹窗中选中某音色</td><td class="cm">—</td></tr>
+<tr><td>36</td><td class="fn"><a name="f36"></a>saveVoiceSettings</td><td class="ln">1547</td><td class="cm">保存音色偏好到后端</td><td class="cm">加载已保存的音色</td></tr>
+</table>
+</div>
+
+<h2>8. 偏好管理 <span class="tag tag-core">交互</span></h2>
+<div class="sec">
+<table>
+<tr><th>#</th><th>函数名</th><th>行号</th><th>说明</th><th>注释摘要</th></tr>
+<tr><td>37</td><td class="fn"><a name="f37"></a>showPreferenceModal</td><td class="ln">1558</td><td class="cm">显示游客偏好多选弹窗</td><td class="cm">从后端加载已有偏好，用于回填选中状态</td></tr>
+<tr><td>38</td><td class="fn"><a name="f38"></a>togglePrefOption</td><td class="ln">1581</td><td class="cm">多选选项点击切换</td><td class="cm">多选：点击切换选中状态</td></tr>
+<tr><td>39</td><td class="fn"><a name="f39"></a>savePreferences</td><td class="ln">1586</td><td class="cm">保存偏好标签到后端</td><td class="cm">—</td></tr>
+<tr><td>40</td><td class="fn"><a name="f40"></a>skipPreferences</td><td class="ln">1601</td><td class="cm">跳过偏好选择</td><td class="cm">—</td></tr>
+<tr><td>41</td><td class="fn"><a name="f41"></a>showPrefModalIfFirstTime</td><td class="ln">1606</td><td class="cm">首次访问时自动弹偏好窗口</td><td class="cm">等页面渲染完再弹</td></tr>
+</table>
+</div>
+
+<h2>9. 会话管理 <span class="tag tag-sess">会话</span></h2>
+<div class="sec">
+<table>
+<tr><th>#</th><th>函数名</th><th>行号</th><th>说明</th><th>注释摘要</th></tr>
+<tr><td>42</td><td class="fn"><a name="f42"></a>generateSessionId</td><td class="ln">1613</td><td class="cm">生成唯一会话 ID</td><td class="cm">—</td></tr>
+<tr><td>43</td><td class="fn"><a name="f43"></a>clearSessionCache</td><td class="ln">1618</td><td class="cm">清除会话列表缓存</td><td class="cm">JSDoc: 新建/删除会话后调用</td></tr>
+<tr><td>44</td><td class="fn"><a name="f44"></a>createNewSession</td><td class="ln">1621</td><td class="cm">新建空白会话：立即清除旧选中、切换界面，再异步刷新列表</td><td class="cm">立即可见：欢迎页 + 输入框聚焦; 后台异步刷新侧边栏; 清除缓存</td></tr>
+<tr><td>45</td><td class="fn"><a name="f45"></a>loadSessionList</td><td class="ln">1643</td><td class="cm">从后端拉取会话列表（带缓存和重试）</td><td class="cm">缓存命中则直接返回; 重试机制：最多等 10 秒，共尝试 2 次</td></tr>
+<tr><td colspan="5" style="background:#f0fdf4;padding:8px 12px;font-size:12px;color:#166534;">✅ 修复：preprocessMarkdown 新增 Step 1.5：在 ### 标题前插入换行 + 空格（<code>.replace(/([^\n])###(\d)/g, '$1\n\n### $2')</code>），解决 AI 输出粘连导致 markdown 不渲染的问题</td></tr>
+<tr><td>46</td><td class="fn"><a name="f46"></a>renderSessionList</td><td class="ln">1672</td><td class="cm">渲染侧边栏会话卡片列表（静默更新）</td><td class="cm">静默更新，不做加载动画——全局加载条已提供反馈</td></tr>
+<tr><td>47</td><td class="fn"><a name="f47"></a>switchSession</td><td class="ln">1695</td><td class="cm">切换到指定会话，从后端加载完整消息历史</td><td class="cm">切换到指定会话，从后端加载完整消息历史</td></tr>
+<tr><td>48</td><td class="fn"><a name="f48"></a>updateActiveCard</td><td class="ln">1757</td><td class="cm">更新侧边栏当前激活会话卡片高亮</td><td class="cm">—</td></tr>
+<tr><td>49</td><td class="fn"><a name="f49"></a>deleteSession</td><td class="ln">1764</td><td class="cm">删除指定会话 —— 自定义浮窗确认 + await 删除后刷新（避免竞态）</td><td class="cm">async 回调; await fetch(DELETE) 完成后才 cachedSessions=null + await renderSessionList(); 避免「删了又出现」竞态问题</td></tr>
+<tr><td>50</td><td class="fn"><a name="f50"></a>showConfirmModal</td><td class="ln">1780</td><td class="cm">显示自定义删除确认浮窗</td><td class="cm">====== 自定义确认浮窗 ======</td></tr>
+<tr><td>51</td><td class="fn"><a name="f51"></a>setMode</td><td class="ln">1798</td><td class="cm">切换对话模式（更新输入框提示语）</td><td class="cm">切换对话模式; 更新输入框提示</td></tr>
+</table>
+</div>
+
+<h2>10. 聊天核心 <span class="tag tag-core">核心</span></h2>
+<div class="sec">
+<table>
+<tr><th>#</th><th>函数名</th><th>行号</th><th>说明</th><th>注释摘要</th></tr>
+<tr><td>52</td><td class="fn"><a name="f52"></a>sendChat</td><td class="ln">1810</td><td class="cm">发送聊天：用户气泡 -> AI 占位 -> SSE 流式接收 -> flushRender -> 可选自动 TTS + 数字人情感</td><td class="cm">步骤: #1 插入用户气泡 #2 插入 AI 占位 #3 SSE 流式接收; rAF 节流渲染避免丢帧; SSE event 接收情感数据; 去掉 data: 前导空格; 情感事件驱动数字人; 流结束后取消回调+同步渲染+自动TTS; 刷新侧边栏（后端已保存到 Redis）; catch 显示「小导断线了，请刷新重试」</td></tr>
+<tr><td>53</td><td class="fn"><a name="f53"></a>flushRender</td><td class="ln">1844</td><td class="cm">流式渲染：将当前 fullText 转为 markdown 并显示（rAF 节流）</td><td class="cm">JSDoc: 流式渲染; rAF 节流; 标题一闪而过修复</td></tr>
+</table>
+</div>
+
+<h2>11. 工具函数 <span class="tag tag-util">通用</span></h2>
+<div class="sec">
+<table>
+<tr><th>#</th><th>函数名</th><th>行号</th><th>说明</th><th>注释摘要</th></tr>
+<tr><td>54</td><td class="fn"><a name="f54"></a>escapeHtml</td><td class="ln">1903</td><td class="cm">转义 HTML 特殊字符防止 XSS</td><td class="cm">====== 工具函数 ======</td></tr>
+<tr><td>55</td><td class="fn"><a name="f55"></a>cleanupSingleTitle</td><td class="ln">1909</td><td class="cm">去掉单项目标题的多余数字编号</td><td class="cm">JSDoc: "### 1. 灵山大佛" -> "### 灵山大佛"</td></tr>
+<tr><td>56</td><td class="fn"><a name="f56"></a>fmtTime</td><td class="ln">1917</td><td class="cm">相对时间格式化 -> 刚刚/N分钟前/今天/M/D</td><td class="cm">JSDoc: 相对时间格式化</td></tr>
+<tr><td>57</td><td class="fn"><a name="f57"></a>init</td><td class="ln">1929</td><td class="cm">启动入口：加载中 -> 恢复最近会话或新建 -> 隐藏加载条 -> 聚焦输入框 -> 首次弹偏好</td><td class="cm">====== 启动：加载中 -> 恢复最近会话或新建 ======; 异常分支全部兜底到 welcome</td></tr>
+<tr><td>58</td><td class="fn"><a name="f58"></a>showWelcomePage</td><td class="ln">1961</td><td class="cm">显示欢迎页（无历史会话或加载失败时）+ 三个快捷提问</td><td class="cm">JSDoc: 显示欢迎页（无历史会话或加载失败时）; quickAsk 必去景点/美食/路线</td></tr>
+</table>
+</div>
+
+<h2>12. 单行注释清单（按行号）</h2>
+<div class="sec">
+<table>
+<tr><th>行号</th><th>注释内容</th></tr>
+<tr><td class="ln">696</td><td class="cm">====== 全局配置 ======</td></tr>
+<tr><td class="ln">697</td><td class="cm">本地 file:// 打开 -> localhost；部署后自动切线上域名</td></tr>
+<tr><td class="ln">699</td><td class="cm">localhost:8080 : https://ggysummer.zeabur.app</td></tr>
+<tr><td class="ln">700</td><td class="cm">当前活跃会话 ID</td></tr>
+<tr><td class="ln">701</td><td class="cm">会话列表缓存，避免重复请求</td></tr>
+<tr><td class="ln">703</td><td class="cm">情感标签 -> 驱动数字人表情</td></tr>
+<tr><td class="ln">706</td><td class="cm">====== 情感驱动数字人 ======</td></tr>
+<tr><td class="ln">730</td><td class="cm">breaks:true 让 marked 对不完整输入更宽容</td></tr>
+<tr><td class="ln">731</td><td class="cm">preprocessMarkdown 已确保 ### 前有空行</td></tr>
+<tr><td class="ln">734</td><td class="cm">====== Markdown 预处理 ======</td></tr>
+<tr><td class="ln">735</td><td class="cm">核心作用：将 AI 输出的各种不一致格式统一规范化</td></tr>
+<tr><td class="ln">737</td><td class="cm">Step 0：保护猜你想问部分</td></tr>
+<tr><td class="ln">746</td><td class="cm">Step 1：去除残留乱码和占位符</td></tr>
+<tr><td class="ln">752</td><td class="cm">Step 2：处理编号列表粘连</td></tr>
+<tr><td class="ln">755</td><td class="cm">Step 3：句末后紧跟新景点名 -> 插入空行</td></tr>
+<tr><td class="ln">758</td><td class="cm">Step 4：行首"名称："格式 -> 前面加空行</td></tr>
+<tr><td class="ln">763</td><td class="cm">Step 5：属性行转换为 markdown 列表</td></tr>
+<tr><td class="ln">768</td><td class="cm">Step 6：段落标题前空行</td></tr>
+<tr><td class="ln">773</td><td class="cm">Step 7/8：去除多余编号、收尾清理</td></tr>
+<tr><td class="ln">940</td><td class="cm">====== 语音输入（Web Audio API -> WAV -> Base64 -> POST JSON -> 自动填入）======</td></tr>
+<tr><td class="ln">957</td><td class="cm">修复: 防止 onVoiceDone 重入</td></tr>
+<tr><td class="ln">958</td><td class="cm">百度 ASR 限 60s, 留 5s margin</td></tr>
+<tr><td class="ln">962</td><td class="cm">修复: 彻底清理上次录音残留</td></tr>
+<tr><td class="ln">974</td><td class="cm">修复: 提高比特率提升 ASR 准确度</td></tr>
+<tr><td class="ln">1001</td><td class="cm">线性插值重采样</td></tr>
+<tr><td class="ln">1008</td><td class="cm">低通滤波防混叠</td></tr>
+<tr><td class="ln">1018</td><td class="cm">窗函数 sinc 重采样</td></tr>
+<tr><td class="ln">1066</td><td class="cm">点确定：停止录音 -> 编码 WAV -> POST API -> 显示结果</td></tr>
+<tr><td class="ln">1100</td><td class="cm">音量归一化: 目标 85% 峰值，软限幅避免削波</td></tr>
+<tr><td class="ln">1187</td><td class="cm">修复: 先清理旧 overlay 防止叠层</td></tr>
+<tr><td class="ln">1223</td><td class="cm">录音结束/取消时恢复麦克风按钮状态</td></tr>
+<tr><td class="ln">1228</td><td class="cm">为每条 AI 消息加上朗读按钮</td></tr>
+<tr><td class="ln">1240</td><td class="cm">修复: 按钮重建后恢复全局朗读的高亮状态</td></tr>
+<tr><td class="ln">1250</td><td class="cm">AI 消息朗读（toggle：读/停 + 数字人头像动画）</td></tr>
+<tr><td class="ln">1332</td><td class="cm">语音回复开关</td></tr>
+<tr><td class="ln">1333</td><td class="cm">默认开启</td></tr>
+<tr><td class="ln">1334</td><td class="cm">默认度博文</td></tr>
+<tr><td class="ln">1384</td><td class="cm">====== TTS 文本润色 ======</td></tr>
+<tr><td class="ln">1390</td><td class="cm">移除"猜你想问"之后的所有内容</td></tr>
+<tr><td class="ln">1395</td><td class="cm">常见属性名 -> TTS 时跳过标题，只读内容</td></tr>
+<tr><td class="ln">1400</td><td class="cm">去除 markdown 格式标记</td></tr>
+<tr><td class="ln">1403</td><td class="cm">处理 key：value 结构</td></tr>
+<tr><td class="ln">1408</td><td class="cm">跳过标题，只读内容</td></tr>
+<tr><td class="ln">1420</td><td class="cm">句号变省略号（自然停顿）</td></tr>
+<tr><td class="ln">1503</td><td class="cm">====== 偏好管理 ======</td></tr>
+<tr><td class="ln">1511</td><td class="cm">====== 语音设置弹窗 ======</td></tr>
+<tr><td class="ln">1552</td><td class="cm">加载已保存的音色</td></tr>
+<tr><td class="ln">1559</td><td class="cm">从后端加载已有偏好，用于回填选中状态</td></tr>
+<tr><td class="ln">1582</td><td class="cm">多选：点击切换选中状态</td></tr>
+<tr><td class="ln">1608</td><td class="cm">等页面渲染完再弹</td></tr>
+<tr><td class="ln">1612</td><td class="cm">====== 会话管理 ======</td></tr>
+<tr><td class="ln">1620</td><td class="cm">新建空白会话 -> 立即清除旧选中、切换界面，再异步刷新列表</td></tr>
+<tr><td class="ln">1622</td><td class="cm">清除所有高亮</td></tr>
+<tr><td class="ln">1625</td><td class="cm">立即可见：欢迎页 + 输入框聚焦</td></tr>
+<tr><td class="ln">1636</td><td class="cm">后台异步刷新侧边栏（追加新会话卡片）</td></tr>
+<tr><td class="ln">1639</td><td class="cm">清除缓存，下次 renderSessionList 重新获取</td></tr>
+<tr><td class="ln">1642</td><td class="cm">从后端拉取会话列表</td></tr>
+<tr><td class="ln">1645</td><td class="cm">缓存命中则直接返回，避免重复请求</td></tr>
+<tr><td class="ln">1648</td><td class="cm">重试机制：最多等 10 秒，共尝试 2 次</td></tr>
+<tr><td class="ln">1671</td><td class="cm">渲染侧边栏（静默更新，不做加载动画）</td></tr>
+<tr><td class="ln">1693</td><td class="cm">切换到指定会话，从后端加载完整消息历史</td></tr>
+<tr><td class="ln">1763</td><td class="cm">删除指定会话 -> 自定义浮窗确认</td></tr>
+<tr><td class="ln">1766</td><td class="cm">先在 UI 上移除卡片</td></tr>
+<tr><td class="ln">1772</td><td class="cm">全删光了就刷新</td></tr>
+<tr><td class="ln">1774</td><td class="cm">后端异步删除</td></tr>
+<tr><td class="ln">1779</td><td class="cm">====== 自定义确认浮窗 ======</td></tr>
+<tr><td class="ln">1797</td><td class="cm">切换对话模式</td></tr>
+<tr><td class="ln">1802</td><td class="cm">更新输入框提示</td></tr>
+<tr><td class="ln">1809</td><td class="cm">====== 聊天核心 ======</td></tr>
+<tr><td class="ln">1818</td><td class="cm">1. 插入用户气泡</td></tr>
+<tr><td class="ln">1824</td><td class="cm">2. 插入 AI 占位（三点动画）</td></tr>
+<tr><td class="ln">1832</td><td class="cm">3. SSE 流式接收 AI 回复</td></tr>
+<tr><td class="ln">1841</td><td class="cm">用 rAF 节流渲染，避免高频 innerHTML 导致浏览器丢帧</td></tr>
+<tr><td class="ln">1859</td><td class="cm">SSE event 通道：接收情感数据但不进入文本</td></tr>
+<tr><td class="ln">1865</td><td class="cm">去掉 "data: " 后的前导空格</td></tr>
+<tr><td class="ln">1866</td><td class="cm">情感事件：驱动数字人，文本跳过</td></tr>
+<tr><td class="ln">1887</td><td class="cm">流结束后：取消待执行的回调，立即同步渲染一次</td></tr>
+<tr><td class="ln">1897</td><td class="cm">刷新侧边栏（后端已保存本轮对话到 Redis）</td></tr>
+<tr><td class="ln">1902</td><td class="cm">====== 工具函数 ======</td></tr>
+<tr><td class="ln">1928</td><td class="cm">====== 启动：加载中 -> 恢复最近会话或新建 ======</td></tr>
+<tr><td class="ln">1974</td><td class="cm">/** 页面加载完成后自动初始化 */</td></tr>
+</table>
+</div>
+
+<p style="color:#888; font-size:12px; text-align:center; margin-top:40px;">文档生成时间：2026-07-15 | 源文件：Aitest.html | 共 58 个函数 + 125 条注释</p>
+</body>
+</html>

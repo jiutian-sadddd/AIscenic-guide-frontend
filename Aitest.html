@@ -1,0 +1,2034 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>灵山智慧导游 · 小导</title>
+    <!-- Tailwind 工具类 / Lucide 图标 / Markdown 解析 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        /* ====== 设计令牌 ====== */
+        :root {
+            --sidebar-w: 280px;
+            --accent: #f59e0b;
+            --accent-deep: #d97706;
+            --primary: #6366f1;
+            --border: #e7e5e4;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        /* 背景：暖灰底 + 双色径向渐变（金 / 紫） */
+        body {
+            background: #f5f3f0;
+            background-image: radial-gradient(ellipse at 20% 80%, #fef3c7 0%, transparent 50%),
+                              radial-gradient(ellipse at 80% 20%, #ede9fe 0%, transparent 50%);
+            font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", -apple-system, sans-serif;
+            height: 100vh; height: 100dvh; overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ====== 整体布局 ====== */
+        .app-layout { display: flex; height: 100vh; height: 100dvh; overflow: hidden; }
+
+        /* ====== 侧边栏 ====== */
+        .sidebar {
+            width: var(--sidebar-w); min-width: var(--sidebar-w);
+            background: #fafaf9; border-right: 1px solid var(--border);
+            display: flex; flex-direction: column; z-index: 20;
+            transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* 品牌区 */
+        .sidebar-header { padding: 20px 16px 12px; border-bottom: 1px solid #f0efed; }
+        .sidebar-header .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+        .sidebar-header .brand-icon {
+            width: 36px; height: 36px; border-radius: 10px;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 20px;
+        }
+        .sidebar-header .brand-name { font-size: 16px; font-weight: 700; color: #292524; }
+        .sidebar-header .brand-sub  { font-size: 11px; color: #a8a29e; }
+
+        /* 新建对话按钮 */
+        .btn-new-chat {
+            width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+            background: #fff; color: #292524; border: 1.5px dashed #d6d3d1;
+            padding: 11px 16px; border-radius: 12px; font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .btn-new-chat:hover { border-color: var(--accent); color: var(--accent-deep); background: #fffbeb; }
+
+        /* 会话列表容器 */
+        .sidebar-list { flex: 1; overflow-y: auto; padding: 8px 12px; }
+        .sidebar-list::-webkit-scrollbar { width: 3px; }
+        .sidebar-list::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 3px; }
+        .sidebar-list .section-label {
+            font-size: 11px; font-weight: 600; color: #a8a29e;
+            letter-spacing: 0.5px; padding: 16px 8px 6px;
+        }
+
+        /* 单个会话卡片 */
+        .session-card {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 12px; margin-bottom: 2px; border-radius: 10px;
+            cursor: pointer; transition: all 0.15s; gap: 8px; min-width: 0;
+            position: relative;
+        }
+        .session-card:hover { background: #f0efed; }
+        .session-card.active { background: linear-gradient(135deg, #fffbeb, #fef3c7); }
+        /* 激活态左边金色标记条 */
+        .session-card.active::before {
+            content: ''; position: absolute; left: 0; top: 8px; bottom: 8px;
+            width: 3px; background: var(--accent); border-radius: 0 2px 2px 0;
+        }
+
+        .session-info { flex: 1; min-width: 0; }
+        .session-title {
+            font-size: 13.5px; font-weight: 600; color: #44403c;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .session-card.active .session-title { color: #92400e; }
+        .session-meta { font-size: 11px; color: #a8a29e; margin-top: 2px; }
+
+        /* 删除按钮：默认隐藏，hover 显示 */
+        .session-del {
+            opacity: 0; flex-shrink: 0; width: 26px; height: 26px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 6px; color: #a8a29e; cursor: pointer; transition: all 0.15s;
+            border: none; background: transparent;
+        }
+        .session-card:hover .session-del { opacity: 1; }
+        .session-del:hover { background: #fee2e2; color: #ef4444; }
+
+        .sidebar-footer {
+            padding: 12px 16px; border-top: 1px solid #f0efed;
+            font-size: 11px; color: #a8a29e; text-align: center;
+        }
+
+        /* ====== 主聊天区 ====== */
+        .chat-area { flex: 1; display: flex; flex-direction: column; min-width: 0; background: #fafaf9; }
+
+        /* 顶部栏（毛玻璃效果） */
+        .chat-header {
+            padding: 14px 24px; background: rgba(255,255,255,0.8); backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px;
+            flex-shrink: 0; position: sticky; top: 0; z-index: 5;
+        }
+        .chat-header .hamburger {
+            display: none; width: 36px; height: 36px; align-items: center; justify-content: center;
+            border-radius: 8px; cursor: pointer; border: none; background: transparent; color: #78716c;
+        }
+        .chat-header .hamburger:hover { background: #f0efed; }
+
+        /* 消息滚动区 */
+        .chat-box {
+            flex: 1; overflow-y: auto; padding: 28px 24px;
+            display: flex; flex-direction: column; gap: 24px;
+            scroll-behavior: smooth;
+        }
+        .chat-box::-webkit-scrollbar { width: 4px; }
+        .chat-box::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 4px; }
+
+        /* ====== 欢迎页 ====== */
+        .welcome-hero {
+            flex: 1; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; gap: 16px; padding: 40px; text-align: center;
+        }
+        .welcome-hero .hero-icon {
+            width: 72px; height: 72px; border-radius: 20px;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 36px; color: #fff; box-shadow: 0 8px 24px rgba(245,158,11,0.25);
+        }
+        .welcome-hero h2 { font-size: 20px; font-weight: 700; color: #292524; }
+        .welcome-hero p  { font-size: 14px; color: #a8a29e; max-width: 360px; line-height: 1.7; }
+
+        /* 快捷提问标签 */
+        .welcome-hero .quick-tags { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
+        .welcome-hero .quick-tag {
+            padding: 8px 16px; background: #fff; border: 1px solid var(--border);
+            border-radius: 20px; font-size: 13px; color: #78716c; cursor: pointer;
+            transition: all 0.15s;
+        }
+        .welcome-hero .quick-tag:hover { border-color: var(--accent); color: var(--accent-deep); background: #fffbeb; }
+
+        /* ====== 聊天气泡 ====== */
+        .msg-row { display: flex; gap: 12px; align-items: flex-start; }
+        .msg-row.user { justify-content: flex-end; }
+        .msg-row.user .msg-avatar { display: none; }
+
+        /* AI 头像 */
+        .msg-avatar {
+            width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; transition: all 0.3s; position: relative;
+        }
+        .msg-avatar.ai {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #fff; box-shadow: 0 2px 8px rgba(245,158,11,0.3);
+        }
+        /* 数字人"说话中"动画：头像呼吸 + 光环扩散 */
+        .msg-avatar.speaking {
+            animation: avatarTalk 0.4s ease-in-out infinite;
+            box-shadow: 0 0 0 0 rgba(245,158,11,0.5);
+        }
+        @keyframes avatarTalk {
+            0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245,158,11,0.3); }
+            50%     { transform: scale(1.15); box-shadow: 0 0 0 8px rgba(245,158,11,0); }
+        }
+        /* 嘴型指示器 */
+        .msg-avatar.speaking::after {
+            content: '💬'; position: absolute; font-size: 10px;
+            top: -6px; right: -6px; animation: speechBubble 0.6s ease-in-out infinite;
+        }
+        @keyframes speechBubble {
+            0%,100% { transform: translateY(0); opacity: 1; }
+            50%     { transform: translateY(-4px); opacity: 0.6; }
+        }
+        .msg-avatar.ai { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; }
+
+        .chat-bubble-ai {
+            background: #fff; border: 1px solid #e7e5e4;
+            border-radius: 6px 18px 18px 18px; padding: 18px 22px; max-width: 88%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .chat-bubble-user {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: #fff; padding: 14px 20px; max-width: 78%;
+            border-radius: 18px 6px 18px 18px;
+            box-shadow: 0 4px 12px rgba(99,102,241,0.2);
+            font-size: 14.5px; line-height: 1.65;
+        }
+
+        /* ====== Markdown 内容渲染 ====== */
+        .markdown-body { line-height: 1.85; color: #44403c; font-size: 15px; word-break: break-word; }
+        .markdown-body p { margin-bottom: 0.8rem; }
+        .markdown-body p:last-child { margin-bottom: 0; }
+
+        /* h3：景点卡片标题（金底 + 左侧金条） */
+        .markdown-body h3 {
+            font-size: 1.05rem; font-weight: 700; color: #92400e;
+            background: linear-gradient(135deg, #fffbeb, #fef3c7);
+            padding: 12px 18px; margin: 1.8rem 0 0 0;
+            border-left: 4px solid #f59e0b; border-radius: 8px 8px 0 0;
+            letter-spacing: 0.3px;
+        }
+        .markdown-body h3:first-child { margin-top: 0; }
+
+        /* ul：景点卡片内容区（接在 h3 下方，下圆角） */
+        .markdown-body ul {
+            list-style: none; padding: 14px 18px; margin: 0 0 1.6rem 0;
+            background: #fafaf9; border: 1px solid #e7e5e4; border-top: none;
+            border-radius: 0 0 10px 10px;
+        }
+        .markdown-body li {
+            padding: 6px 0; border-bottom: 1px solid #f0efed;
+            font-size: 14px; line-height: 1.7;
+        }
+        .markdown-body li:last-child { border-bottom: none; padding-bottom: 0; }
+
+        /* 列表首项加粗 → 金色标签 */
+        .markdown-body li > strong:first-child,
+        .markdown-body li > p > strong:first-child {
+            display: inline-block; color: #d97706; background: #fef3c7;
+            padding: 2px 9px; border-radius: 5px; font-size: 0.82em;
+            font-weight: 700; margin-right: 8px; letter-spacing: 0.3px;
+        }
+
+        /* 普通加粗 → 金棕色 */
+        .markdown-body strong { color: #d97706; font-weight: 700; }
+
+        /* 猜你想问序号列表 */
+        .markdown-body ol {
+            padding-left: 1.2em; margin: 0.6rem 0 0 0;
+            color: #78716c; font-size: 13.5px;
+        }
+        .markdown-body ol li { padding: 4px 0; border: none; }
+
+        /* ====== 动画 ====== */
+        .typing-dots { display: flex; gap: 4px; padding: 8px 0; }
+        .typing-dots span {
+            width: 7px; height: 7px; background: #d6d3d1; border-radius: 50%;
+            animation: dotBounce 1.2s infinite;
+        }
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes dotBounce {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30%           { transform: translateY(-6px); opacity: 1; }
+        }
+
+        /* ====== 模式切换 ====== */
+        .mode-switch {
+            display: flex; gap: 6px; margin-bottom: 10px;
+            background: #f5f3f0; border-radius: 12px; padding: 4px;
+        }
+        .mode-btn {
+            flex: 1; padding: 8px 12px; border: none; border-radius: 9px;
+            font-size: 13px; font-weight: 600; cursor: pointer;
+            background: transparent; color: #78716c; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 5px;
+        }
+        .mode-btn:hover { color: #44403c; }
+        .mode-btn.active {
+            background: #fff; color: #92400e;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .mode-btn.active.deep { color: #4f46e5; }
+
+        /* ====== 输入区 ====== */
+        .chat-input-area {
+            padding: 16px 24px 20px; background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(12px); border-top: 1px solid var(--border); flex-shrink: 0;
+        }
+        .input-row { display: flex; align-items: center; gap: 10px; }
+        .input-row input {
+            flex: 1; background: #f5f3f0; border: 1.5px solid transparent;
+            border-radius: 16px; padding: 14px 20px; font-size: 14.5px; color: #292524;
+            outline: none; transition: all 0.2s;
+        }
+        .input-row input:focus {
+            border-color: #f59e0b; background: #fff;
+            box-shadow: 0 0 0 3px rgba(245,158,11,0.1);
+        }
+        .input-row input::placeholder { color: #c4beb9; }
+
+        /* 发送按钮 */
+        .btn-send {
+            width: 46px; height: 46px; border-radius: 14px; border: none;
+            background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s; flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(245,158,11,0.2);
+        }
+        .btn-send:hover  { transform: scale(1.05); box-shadow: 0 6px 16px rgba(245,158,11,0.3); }
+        .btn-send:active { transform: scale(0.95); }
+
+        /* ====== 移动端适配 ====== */
+        .sidebar-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.3); z-index: 19; backdrop-filter: blur(2px);
+        }
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; left: 0; top: 0; bottom: 0; transform: translateX(-100%); width: 80%; min-width: 0; max-width: 320px; }
+            .sidebar.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,0.15); }
+            .sidebar-overlay.show { display: block; }
+            .chat-header .hamburger { display: flex; }
+            .chat-bubble-ai { max-width: 95%; }
+            .chat-bubble-user { max-width: 88%; }
+            .chat-box { padding: 14px 10px; gap: 14px; }
+            .welcome-hero h2 { font-size: 22px; }
+            .welcome-hero p { font-size: 13px; max-width: 280px; }
+            .welcome-hero .quick-tag { font-size: 12px; padding: 7px 12px; }
+            .chat-input-area { padding: 10px 12px; gap: 8px; }
+            .input-row input { padding: 10px 12px; font-size: 14px; }
+            .mode-btn { padding: 5px 10px; font-size: 12px; }
+            .kb-panel { padding: 10px 12px; }
+            .msg-row { gap: 8px; }
+            .msg-avatar { width: 28px; height: 28px; min-width: 28px; }
+            .chat-bubble { padding: 10px 14px; font-size: 14px; line-height: 1.6; }
+            .digital-human { right: 12px; bottom: 80px; }
+        }
+        @media (max-width: 400px) {
+            .welcome-hero .quick-tag { font-size: 11px; padding: 6px 10px; }
+            .modal-card, .pref-modal-card, .voice-card { max-width: calc(100vw - 32px); padding: 20px 16px; }
+            .voice-ring { width: 56px; height: 56px; }
+            .digital-human { right: 8px; bottom: 70px; width: 48px; height: 48px; }
+            .chat-input-area { padding: 8px 10px; }
+            .mode-btn { padding: 4px 8px; font-size: 11px; }
+            .chat-bubble { font-size: 13px; padding: 8px 12px; }
+            .welcome-hero h2 { font-size: 18px; }
+            .header-title { font-size: 14px; }
+            .btn-speaker { width: 24px; height: 24px; }
+            .voice-card { padding: 20px 16px 16px; }
+            .voice-card h3 { font-size: 16px; }
+            .voice-ring { width: 52px; height: 52px; }
+            .voice-status { font-size: 13px; }
+            .pref-row { flex-wrap: wrap; }
+            .pref-tag { font-size: 12px; padding: 5px 10px; }
+            .modal-actions { flex-direction: column; gap: 8px; }
+            .modal-btn { width: 100%; }
+        }
+        }
+        /* ====== 自定义确认确认 ======*/
+        /* ====== 自定义确认浮窗 ====== */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 100; animation: fadeIn 0.15s ease forwards;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-card {
+            background: #fff; border-radius: 16px; padding: 28px 32px;
+            max-width: 360px; width: 90%; text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            animation: slideUp 0.2s ease forwards;
+        }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-card p { font-size: 15px; color: #44403c; margin-bottom: 24px; line-height: 1.6; }
+        .modal-actions { display: flex; gap: 10px; justify-content: center; }
+        .modal-btn {
+            padding: 10px 28px; border-radius: 10px; font-size: 14px; font-weight: 600;
+            cursor: pointer; border: none; transition: all 0.15s;
+        }
+        .modal-btn.cancel { background: #f0efed; color: #78716c; }
+        .modal-btn.cancel:hover { background: #e7e5e4; }
+        .modal-btn.confirm { background: #ef4444; color: #fff; }
+        .modal-btn.confirm:hover { background: #dc2626; }
+
+        /* ====== 偏好选择弹窗 ====== */
+        .pref-modal-card { max-width: 480px; }
+        .pref-section { margin-bottom: 20px; text-align: left; }
+        .pref-label { font-size: 13px; font-weight: 700; color: #78716c; margin-bottom: 8px; }
+        .pref-options { display: flex; flex-wrap: wrap; gap: 8px; }
+        .pref-option {
+            padding: 8px 16px; border-radius: 20px; font-size: 13px; cursor: pointer;
+            border: 1.5px solid #e7e5e4; background: #fff; color: #78716c;
+            transition: all 0.15s; user-select: none;
+        }
+        .pref-option:hover { border-color: #f59e0b; color: #92400e; }
+        .pref-option.selected { background: #fef3c7; border-color: #f59e0b; color: #92400e; font-weight: 600; }
+        .pref-skip { font-size: 13px; color: #a8a29e; cursor: pointer; text-decoration: underline; display: inline-block; margin-top: 4px; }
+
+        /* 右上角偏好按钮 */
+        .btn-prefs {
+             width: 34px; height: 34px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 8px; cursor: pointer; border: none; background: transparent; color: #78716c;
+            transition: all 0.15s;
+        }
+        .btn-prefs:hover { background: #f0efed; color: #f59e0b; }
+
+        /* ====== 语音按钮 ====== */
+        .btn-mic {
+            width: 40px; height: 40px; border-radius: 12px; border: 1.5px solid #e7e5e4;
+            background: #fff; color: #78716c; cursor: pointer; display: flex;
+            align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0;
+        }
+        .btn-mic:hover { border-color: #f59e0b; color: #f59e0b; }
+        .btn-mic.listening { border-color: #ef4444; color: #ef4444; background: #fef2f2; animation: micPulse 1.2s infinite; }
+        @keyframes micPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.3); } 50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); } }
+        .btn-speaker {
+            width: 28px; height: 28px; border-radius: 6px; border: none; background: transparent;
+            color: #a8a29e; cursor: pointer; display: inline-flex; align-items: center;
+            justify-content: center; transition: all 0.15s; vertical-align: middle; margin-left: 6px;
+        }
+        .btn-speaker:hover { color: #f59e0b; background: #fffbeb; }
+        .btn-speaker.speaking { color: #f59e0b; animation: speakerPulse 0.6s infinite; }
+        @keyframes speakerPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        /* ====== 语音录入浮窗 ====== */
+        .voice-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 150;
+            display: flex; align-items: center; justify-content: center;
+            animation: fadeIn 0.2s ease forwards;
+        }
+        .voice-card {
+            background: #fff; border-radius: 20px; padding: 36px 32px 28px;
+            max-width: 340px; width: 90%; text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        .voice-ring {
+            width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 20px;
+            display: flex; align-items: center; justify-content: center;
+            background: #fef2f2; border: 3px solid #ef4444;
+            animation: micPulse 1.2s infinite;
+        }
+        .voice-ring i { color: #ef4444; }
+        .voice-card .voice-status { font-size: 15px; font-weight: 600; color: #292524; margin-bottom: 12px; }
+        .voice-card .voice-text {
+            font-size: 16px; color: #44403c; min-height: 48px; line-height: 1.6;
+            background: #fafaf9; border-radius: 12px; padding: 12px 16px;
+            margin-bottom: 20px; word-break: break-word;
+        }
+        .voice-card .voice-text.empty { color: #a8a29e; font-size: 14px; }
+        .voice-card .voice-actions { display: flex; gap: 10px; justify-content: center; }
+        .voice-card .voice-actions button {
+            padding: 10px 24px; border-radius: 10px; font-size: 14px; font-weight: 600;
+            cursor: pointer; border: none; transition: all 0.15s;
+        }
+        .voice-card .voice-done { background: #f59e0b; color: #fff; }
+        .voice-timer { font-size: 24px; font-weight: 600; color: #0d9488; margin: 0; }
+        .voice-card .voice-send { background: #0d9488; color: #fff; }
+        .voice-card .voice-send:hover { background: #0f766e; }
+        .voice-card .voice-done:hover { background: #d97706; }
+        .voice-card .voice-cancel { background: #f0efed; color: #78716c; }
+        .voice-card .voice-cancel:hover { background: #e7e5e4; }
+
+        /* ====== 数字人展示位（AI 说话时显示） ====== */
+        .digital-human {
+            display: none; position: fixed; bottom: 100px; left: 50%;
+            transform: translateX(-50%); z-index: 50; text-align: center;
+            animation: fadeInUp 0.3s ease;
+        }
+        .digital-human.show { display: block; }
+        .digital-human .dh-avatar {
+            width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 8px;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 40px; color: #fff;
+            box-shadow: 0 4px 20px rgba(245,158,11,0.4);
+            transition: transform 0.3s;
+        }
+        .digital-human.speaking .dh-avatar {
+            animation: avatarTalk 0.4s ease-in-out infinite;
+            box-shadow: 0 0 0 0 rgba(245,158,11,0.5);
+        }
+        .digital-human .dh-status {
+            font-size: 12px; color: #78716c; background: #fff;
+            border-radius: 20px; padding: 4px 14px; display: inline-block;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        /* 数字人情感状态 */
+        .digital-human.happy .dh-avatar { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 20px rgba(16,185,129,0.4); }
+        .digital-human.angry .dh-avatar { background: linear-gradient(135deg, #f43f5e, #e11d48); box-shadow: 0 4px 20px rgba(244,63,94,0.4); }
+        .digital-human.normal .dh-avatar { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 4px 20px rgba(245,158,11,0.4); }
+
+        /* ====== 全局加载条（顶部细线动画，网络请求时出现） ====== */
+        .global-loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 3px; z-index: 200;
+            pointer-events: none; opacity: 0; transition: opacity 0.15s;
+        }
+        .global-loader.active { opacity: 1; }
+        .global-loader::before {
+            content: ''; display: block; height: 100%;
+            background: linear-gradient(90deg, #f59e0b, #d97706, #f59e0b);
+            animation: loaderSlide 1.5s ease-in-out infinite;
+        }
+        @keyframes loaderSlide {
+            0%   { width: 0; margin-left: 0; }
+            50%  { width: 40%; margin-left: 30%; }
+            100% { width: 0; margin-left: 100%; }
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        /* forwards: 流式 rAF 渲染时防止动画重启导致透明度抖动 */`n        .chat-bubble-ai, .chat-bubble-user, .welcome-hero { animation: fadeInUp 0.35s ease forwards; }
+
+/* ====== 知识库管理面板 ====== */
+.kb-panel {
+    border-top: 1px solid #f0efed;
+    padding: 12px 16px;
+    background: #fafaf9;
+}
+.kb-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #78716c;
+    margin-bottom: 8px;
+}
+.kb-panel-body {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    position: relative;
+}
+.kb-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    border: 1px solid #e7e5e4;
+    border-radius: 6px;
+    background: #fff;
+    color: #44403c;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.kb-btn:hover { background: #f5f3f0; border-color: #d6d3d1; }
+.kb-btn-upload { color: #6366f1; border-color: #c7d2fe; }
+.kb-btn-upload:hover { background: #eef2ff; }
+.kb-btn-stats { color: #059669; border-color: #a7f3d0; }
+.kb-btn-stats:hover { background: #ecfdf5; }
+.kb-btn-delete { color: #dc2626; border-color: #fecaca; }
+.kb-btn-delete:hover { background: #fef2f2; }
+.kb-btn-cache { color: #d97706; border-color: #fde68a; background: #fffbeb; }
+.kb-btn-cache:hover { background: #fef3c7; border-color: #fbbf24; }
+.kb-btn-cache:disabled { opacity: 0.5; cursor: not-allowed; }
+.kb-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.kb-stats {
+    width: 100%;
+    margin-top: 6px;
+    padding: 6px 8px;
+    background: #f5f3f0;
+    border-radius: 4px;
+    font-size: 11px;
+    color: #57534e;
+}
+.kb-stats-line { padding: 2px 0; }
+.kb-status {
+    width: 100%;
+    margin-top: 6px;
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    line-height: 1.4;
+}
+.kb-status.success { background: #ecfdf5; color: #059669; }
+.kb-status.error { background: #fef2f2; color: #dc2626; }
+.kb-status.loading { background: #eff6ff; color: #2563eb; }
+
+    </style>
+</head>
+<body>
+    <!-- 全局加载条：网络请求时自动出现 -->
+    <div class="global-loader" id="globalLoader"></div>
+    <div class="app-layout">
+        <!-- 移动端侧边栏遮罩 -->
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+        <!-- ======== 侧边栏 ======== -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <div class="brand-icon">🏯</div>
+                    <div>
+                        <div class="brand-name">灵山小导</div>
+                        <div class="brand-sub">智慧景区助手</div>
+                    </div>
+                </div>
+                <button class="btn-new-chat" onclick="createNewSession()">
+                    <i data-lucide="plus" size="16"></i> 新建对话
+                </button>
+            </div>
+            <!-- 会话列表由 JS 动态渲染 -->
+            <div class="sidebar-list" id="sessionList">
+                <div class="section-label">历史对话</div>
+                <div style="text-align:center;color:#a8a29e;font-size:13px;padding:20px 0;">暂无记录</div>
+            </div>
+            <!-- 知识库管理面板 -->
+            <div class="kb-panel" id="kbPanel">
+                <div class="kb-panel-header">
+                    <i data-lucide="database" size="14"></i>
+                    <span>知识库管理</span>
+                </div>
+                <div class="kb-panel-body">
+                    <button class="kb-btn kb-btn-upload" onclick="document.getElementById('kbFileInput').click()">
+                        <i data-lucide="upload" size="14"></i> 上传文档
+                    </button>
+                    <input type="file" id="kbFileInput" accept=".docx,.xlsx,.pdf,.md,.txt" style="display:none" onchange="uploadKbFile(event)">
+                    <button class="kb-btn kb-btn-stats" onclick="refreshKbStats()">
+                        <i data-lucide="bar-chart-3" size="14"></i> 统计
+                    </button>
+                    <button class="kb-btn kb-btn-delete" onclick="deleteAllKb()">
+                        <i data-lucide="trash-2" size="14"></i> 清空知识库
+                    </button>
+                    <!-- 清空 Rerank 缓存：Qdrant 数据更新后调用，让下次提问重新走完整 Rerank -->
+                    <button class="kb-btn kb-btn-cache" id="kbBtnCache" onclick="clearRerankCache()">
+                        <i data-lucide="refresh-cw" size="14"></i> 刷新缓存
+                    </button>
+                    <div class="kb-stats" id="kbStats" style="display:none">
+                        <div class="kb-stats-line">碎片数：<b id="kbTotalChunks">-</b></div>
+                        <div class="kb-stats-line">文档数：<b id="kbSourceCount">-</b></div>
+                    </div>
+                    <div class="kb-status" id="kbStatus" style="display:none"></div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">对话记录保存在云端</div>
+        </aside>
+
+        <!-- ======== 主聊天区 ======== -->
+        <main class="chat-area">
+            <div class="chat-header">
+                <button class="hamburger" onclick="toggleSidebar()">
+                    <i data-lucide="menu" size="20"></i>
+                </button>
+                <span style="font-weight:700;font-size:15px;color:#292524;">小导</span>
+                <span style="display:flex;align-items:center;gap:4px;font-size:12px;color:#10b981;">
+                    <span style="width:6px;height:6px;background:#10b981;border-radius:50%;"></span>在线
+                </span>
+                <div style="display:flex;gap:4px;margin-left:auto;flex-shrink:0;"><!-- 语音回复开关 -->
+                <button id="btnTtsToggle" class="btn-prefs" onclick="toggleAutoTts()" title="语音回复: 开" style="color:#6366f1;">
+                    <i data-lucide="volume-2" size="18"></i>
+                </button>
+                <button id="btnVoiceSettings" class="btn-prefs" onclick="showVoiceSettings()" title="语音设置" style="color:#6366f1;">
+                    <i data-lucide="settings-2" size="18"></i>
+                </button>
+                <!-- 右上角偏好按钮 -->
+                <button id="btnPreferences" class="btn-prefs" onclick="showPreferenceModal()" title="我的偏好">
+                    <i data-lucide="sliders-horizontal" size="18"></i>
+                </button>
+            </div>
+            </div>
+
+            <!-- 消息区（初始加载动画，数据到后 JS 替换为历史或欢迎页） -->
+            <div class="chat-box" id="chatBox">
+                <div id="initialSpinner" style="display:flex;align-items:center;justify-content:center;height:100%;">
+                    <div style="text-align:center;">
+                        <div style="width:48px;height:48px;border:4px solid #e7e5e4;border-top-color:#f59e0b;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px;"></div>
+                        <p style="font-size:14px;color:#a8a29e;">正在加载对话记录...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 输入区 -->
+            <div class="chat-input-area">
+                <!-- 模式切换 -->
+                <div class="mode-switch">
+                    <button class="mode-btn active" id="modeNormal" onclick="setMode('normal')" title="采用普通RAG模式 保证速度的同时兼顾准确性">
+                        💬 正常聊天
+                    </button>
+                    <button class="mode-btn" id="modeDeep" onclick="setMode('deep')" title="使用Agentic RAG 模式 更精细化的分析问题">
+                        🧠 深度思考
+                    </button>
+                </div>
+
+                <div class="input-row">
+                    <input type="text" id="userInput" placeholder="采用普通RAG模式，快速准确回答..."
+                           onkeydown="if(event.key==='Enter') sendChat()">
+                    <button class="btn-mic" id="btnMic" onclick="toggleVoice()" title="语音输入">
+                        <i data-lucide="mic" size="18"></i>
+                    </button>
+                    <button class="btn-send" onclick="sendChat()">
+                        <i data-lucide="send" size="18"></i>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 数字人展示位（AI 说话时浮现） -->
+    <div class="digital-human" id="digitalHuman">
+        <div class="dh-avatar">🏯</div>
+        <div class="dh-status">小导正在介绍...</div>
+    </div>
+
+    <!-- 偏好选择弹窗（模板，JS 动态填充 option） -->
+    <div id="prefModal" class="modal-overlay" style="display:none;">
+        <div class="modal-card pref-modal-card">
+            <h3 style="font-size:18px;font-weight:700;color:#292524;margin-bottom:6px;">定制你的旅行偏好</h3>
+            <p style="font-size:13px;color:#a8a29e;margin-bottom:20px;">我会根据你的选择，为你推荐最合适的景点和路线</p>
+            <div id="prefSections"></div>
+            <div class="modal-actions" style="margin-top:8px;">
+                <span class="pref-skip" onclick="skipPreferences()">跳过，以后再说</span>
+                <button class="modal-btn confirm" style="background:#f59e0b;margin-left:auto;" onclick="savePreferences()">保存偏好</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 语音设置弹窗 -->
+    <div id="voiceModal" class="modal-overlay" style="display:none;">
+        <div class="modal-card" style="max-width:420px;">
+            <h3 style="font-size:18px;font-weight:700;color:#292524;margin-bottom:6px;"><i data-lucide="mic" style="vertical-align:middle;margin-right:6px;"></i>语音设置</h3>
+            <p style="font-size:13px;color:#a8a29e;margin-bottom:16px;">选择 AI 数字人的声音，打造个性化的景区导览体验</p>
+            <div id="voiceOptions" style="display:flex;flex-direction:column;gap:10px;"></div>
+            <div class="modal-actions" style="margin-top:16px;">
+                <span class="pref-skip" onclick="document.getElementById('voiceModal').style.display='none'">取消</span>
+                <button class="modal-btn confirm" style="background:#f59e0b;margin-left:auto;" onclick="saveVoiceSettings()">保存设置</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ====== 全局配置 ======
+        // 本地 file:// 打开 → localhost；部署后自动切线上域名
+        const API_BASE = (window.location.protocol === 'file:' || window.location.hostname === 'localhost')
+            ? 'http://localhost:8080' : 'https://ggysummer.zeabur.app';
+        let currentSessionId = null;   // 当前活跃会话 ID
+        let cachedSessions = null;     // 会话列表缓存，避免重复请求
+        const PREFS_KEY = 'scenic_prefs_shown';
+        let currentSentiment = '';     // 情感标签 😊/😡 → 驱动数字人表情
+        let currentMode = 'normal';    // 对话模式：normal（快速）/ deep（深度）     // 情感标签 😊/😡 → 驱动数字人表情
+        lucide.createIcons();
+
+        // ====== 情感驱动数字人 ======
+        function detectSentiment(text) {
+            const neg = ['太差','很差','不好','糟透','糟糕','垃圾','没用','坑','骗','失望','差评','难吃','难玩','无聊','太贵','不值','错了','不对','瞎说'];
+            const pos = ['很棒','太棒','不错','喜欢','推荐','漂亮','好吃','好玩','厉害','牛','感谢','开心','满意','完美','优秀','👍','很好','真好'];
+            for (const w of neg) { if (text.includes(w)) { currentSentiment = 'neg'; return; } }
+            for (const w of pos) { if (text.includes(w)) { currentSentiment = 'pos'; return; } }
+            currentSentiment = '';
+        }
+        function updateDigitalHuman() {
+            const dh = document.getElementById('digitalHuman');
+            if (!dh) return;
+            dh.classList.remove('happy','angry','normal');
+            if (currentSentiment === 'pos') dh.classList.add('happy');
+            else if (currentSentiment === 'neg') dh.classList.add('angry');
+            else { dh.classList.remove('show'); return; }
+            dh.classList.add('show');
+            setTimeout(() => dh.classList.remove('show'), 3000);
+        }
+
+        // ====== 全局加载条 ======
+        let loaderCount = 0;
+        function showLoader() { loaderCount++; document.getElementById('globalLoader').classList.add('active'); }
+        function hideLoader() { loaderCount = Math.max(0, loaderCount - 1); if (loaderCount === 0) document.getElementById('globalLoader').classList.remove('active'); }
+        async function withLoader(fn) { showLoader(); try { return await fn(); } finally { hideLoader(); } }
+        // breaks:true 让 marked 对不完整输入更宽容，标题更快被识别
+        // preprocessMarkdown 已确保 ### 前有空行，不会被 <br> 吞掉
+        marked.setOptions({ gfm: true, breaks: true });
+
+        // ====== Markdown 预处理 ======
+        // 核心作用：将 AI 输出的各种不一致格式统一规范化为 marked.js 可正确渲染的 Markdown
+        function preprocessMarkdown(text) {
+            // Step 0：保护 💡猜你想问 部分（避免被其他规则误处理）
+            let suggestion = '';
+            const sugMatch = text.match(/\uD83D\uDCA1\u731C\u4F60\u60F3\u95EE[\s\S]*$/);
+            if (sugMatch) {
+                suggestion = sugMatch[0];
+                text = text.substring(0, sugMatch.index);
+            }
+
+            text = text
+                // Step 0.5：后端存储的 \ n 字面量 → 真实换行（必须在所有 \ n 匹配之前）
+                .replace(/\n/g, '\n')
+
+                                // Step 1：去除残留乱码和占位符
+                .replace(/�/g, '')
+                .replace(/\\uff08\\u7a7a\\u7559\\u4e00\\u884c\\uff09/g, '')
+                .replace(/\\u3010\\u4e24\\u4e2a\\u6362\\u884c\\u7b26\\u3011/g, '')
+                .replace(/^>/gm, '')
+                // Step 1.5: 在 ### 标题��插入换行\uff08AI 输出时经常粘连\uff0c如'。###1.标题'\uff09
+                .replace(/([^\n])###(\d)/g, '$1\n\n### $2')
+                // Step 1.6: split continuous -**\u5c5e\u6027** into separate lines
+                .replace(/-((\*\*)(\u4f4d\u7f6e|\u4ef7\u683c|\u7279\u8272|\u5efa\u8bae|\u63d0\u9192|\u8017\u65f6|\u9002\u5408\u5b69\u5b50|\u4eb2\u5b69\u4e92\u52a8|\u514d\u8d39|\u5168\u5929\u5f00\u653e|\u8868\u6f14\u65f6\u95f4|\u5730\u70b9|\u6838\u5fc3\u529f\u80fd|\u6587\u5316\u5185\u6db5|\u8be6\u7ec6\u4ecb\u7ecd|\u6e38\u73a9\u4eae\u70b9)(\*\*)[:\uff1a])/g, '\n- **$3**\uff1a')
+
+                // Step 2：处理编号列表粘连（"体验：1.XXX" → "体验：\\n\\n1.XXX"）
+                .replace(/([：:])\\s*(\\d+\\.)/g, '$1\n\n$2')
+
+                // Step 3：句末后紧跟新景点名 → 插入空行分隔
+                .replace(/([。！？])(?=[\\u4e00-\\u9fff]{2,8}[：:])/g, '$1\n\n')
+
+                // Step 4：行首"名称："格式 → 前面加空行（支持括号注释）
+                .replace(/\n([\\u4e00-\\u9fff]{2,8}(?:[（(][^）)]*[）)])?)[：:]/g, function(m, name) {
+                    return '\n\n' + name + '：';
+                })
+
+                // Step 5：属性行转换为 markdown 列表（"-位置：" → "- **位置**："）
+                .replace(/(?:^|\n)-\\s*(位置|特色|价格|建议|提醒|耗时|适合孩子|亲子互动|免费|全天开放|表演时间|地点|核心功能|文化内涵|详细介绍|游玩亮点)([:：])/g, '\n- **$1**：')
+                // 也处理没有 "- " 前缀的属性行（直接换行 + 属性名）
+                .replace(/(?:^|\n)(位置|特色|价格|建议|提醒|耗时|适合孩子|亲子互动|免费|全天开放|表演时间|地点|核心功能|文化内涵|详细介绍|游玩亮点)([:：])/g, '\n- **$1**：')
+
+                // Step 6：段落标题前空行
+                .replace(/特色体验[：:]/g, '\n\n特色体验：')
+                .replace(/讲解重点[：:]/g, '\n\n讲解重点：')
+                .replace(/路线规划[：:]/g, '\n\n路线规划：')
+
+                // Step 7：去除 💡 前面的残留换行（后面会统一添加）
+                .replace(/\n+(\\uD83D\\uDCA1)/g, '$1')
+
+                // Step 8：合并多余空行
+                .replace(/\n{3,}/g, '\n\n')
+                .trim();
+
+            // 重新附加 💡猜你想问（前面加空行）
+            if (suggestion) {
+                suggestion = suggestion.replace(/\n/g, '\n');
+                text += '\n\n' + suggestion;
+            }
+
+            return text;
+        }
+
+        // ====== 侧边栏 ======
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebarOverlay').classList.toggle('show');
+        }
+
+        // ====== 知识库管理 ======
+
+        /** 上传文档到知识库 */
+        async function uploadKbFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const statusEl = document.getElementById('kbStatus');
+            const uploadBtn = document.querySelector('.kb-btn-upload');
+
+            statusEl.className = 'kb-status loading';
+            statusEl.style.display = 'block';
+            statusEl.textContent = '上传中...';
+            uploadBtn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const resp = await fetch(API_BASE + '/ai/import', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await resp.json();
+                if (data && data.code === 200) {
+                    statusEl.className = 'kb-status success';
+                    statusEl.textContent = '✅ ' + (data.data || '上传成功');
+                    refreshKbStats();
+                } else {
+                    statusEl.className = 'kb-status error';
+                    statusEl.textContent = '❌ ' + (data.message || '上传失败');
+                }
+            } catch (err) {
+                statusEl.className = 'kb-status error';
+                statusEl.textContent = '❌ 网络错误: ' + err.message;
+            } finally {
+                uploadBtn.disabled = false;
+                event.target.value = '';
+            }
+        }
+
+        /** 刷新知识库统计 */
+        async function refreshKbStats() {
+            const statusEl = document.getElementById('kbStatus');
+            try {
+                const resp = await fetch(API_BASE + '/ai/rag/stats');
+                const data = await resp.json();
+                if (data && data.code === 200) {
+                    const stats = data.data;
+                    document.getElementById('kbTotalChunks').textContent = stats.totalChunks || 0;
+                    document.getElementById('kbSourceCount').textContent = stats.sourceCount || 0;
+                    document.getElementById('kbStats').style.display = 'block';
+                    statusEl.className = 'kb-status success';
+                    statusEl.textContent = '✅ 已更新';
+                } else {
+                    statusEl.className = 'kb-status error';
+                    statusEl.textContent = '❌ ' + (data.message || '查询失败');
+                }
+            } catch (err) {
+                statusEl.className = 'kb-status error';
+                statusEl.textContent = '❌ 网络错误: ' + err.message;
+            }
+        }
+
+        /** 清空知识库（危险操作） */
+        async function deleteAllKb() {
+            if (!confirm('确定清空知识库？此操作不可恢复！')) return;
+
+            const statusEl = document.getElementById('kbStatus');
+            const deleteBtn = document.querySelector('.kb-btn-delete');
+
+            statusEl.className = 'kb-status loading';
+            statusEl.style.display = 'block';
+            statusEl.textContent = '清空中...';
+            deleteBtn.disabled = true;
+
+            try {
+                const resp = await fetch(API_BASE + '/ai/rag/document/all', {
+                    method: 'DELETE'
+                });
+                const data = await resp.json();
+                if (data && data.code === 200) {
+                    statusEl.className = 'kb-status success';
+                    statusEl.textContent = '✅ 知识库已清空';
+                    document.getElementById('kbStats').style.display = 'none';
+                    document.getElementById('kbTotalChunks').textContent = '0';
+                    document.getElementById('kbSourceCount').textContent = '0';
+                } else {
+                    statusEl.className = 'kb-status error';
+                    statusEl.textContent = '❌ ' + (data.message || '清空失败');
+                }
+            } catch (err) {
+                statusEl.className = 'kb-status error';
+                statusEl.textContent = '❌ 网络错误: ' + err.message;
+            } finally {
+                deleteBtn.disabled = false;
+            }
+        }
+
+        /**
+         * 清空 Rerank 三级缓存（让下次提问重新走完整 Rerank 流程）
+         *
+         * 使用场景：
+         *   - 新文档入库后，旧缓存的排序结果已不准确
+         *   - 发现 AI 回复"无匹配知识"等异常时，先清缓存再试
+         *
+         * 效果：清完后第一次查询稍慢（走实时 Rerank API），之后缓存自动重建加速
+         */
+        async function clearRerankCache() {
+            const statusEl = document.getElementById('kbStatus');
+            const cacheBtn = document.getElementById('kbBtnCache');
+
+            if (!confirm('确定清空 Rerank 缓存？清空后首次查询会稍慢（~500ms），之后自动加速。')) return;
+
+            statusEl.className = 'kb-status loading';
+            statusEl.style.display = 'block';
+            statusEl.textContent = '清空中...';
+            cacheBtn.disabled = true;
+
+            try {
+                const resp = await fetch(API_BASE + '/ai/admin/cache/clear', { method: 'POST' });
+                const data = await resp.json();
+                if (data && data.code === 200) {
+                    statusEl.className = 'kb-status success';
+                    statusEl.textContent = '✅ ' + (data.message || '缓存已清空');
+                } else {
+                    statusEl.className = 'kb-status error';
+                    statusEl.textContent = '❌ ' + (data.message || '清空失败');
+                }
+            } catch (err) {
+                statusEl.className = 'kb-status error';
+                statusEl.textContent = '❌ 网络错误: ' + err.message;
+            } finally {
+                cacheBtn.disabled = false;
+            }
+        }
+
+
+
+        // ====== 快捷提问 ======
+        function quickAsk(msg) { document.getElementById('userInput').value = msg; sendChat(); }
+        function hideWelcome() {
+            const hero = document.getElementById('welcomeHero');
+            if (hero) hero.style.display = 'none';
+        }
+
+        // ====== 语音输入（Web Audio API → WAV → Base64 → POST JSON → 自动填入）======
+        let audioCtx = null;
+        let audioStream = null;
+        let audioSampleRate = 16000;
+        let voiceOverlay = null;
+        let recordingTimer = null;
+        let recordingSeconds = 0;
+        let transcribedResult = '';
+        let mediaRecorder = null;
+        let blobChunks = [];
+        let recordedText = '';
+
+        function toggleVoice() {
+            if (voiceOverlay) return;
+            startRecording();
+        }
+
+        let isProcessing = false; // 修复: 防止 onVoiceDone 重入
+        const MAX_RECORD_SECONDS = 55; // 百度 ASR 限 60s, 留 5s margin
+
+        async function startRecording() {
+            try {
+                // 修复: 彻底清理上次录音残留
+                if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+                if (audioStream) audioStream.getTracks().forEach(t => t.stop());
+                blobChunks = [];
+                isProcessing = false;
+                recordedText = '';
+                console.log('[VOICE] getting mic...');
+                audioStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+                console.log('[VOICE] mic ok');
+                const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                    ? 'audio/webm;codecs=opus'
+                    : (MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '');
+                // 修复: 提高比特率提升 ASR 准确度
+                mediaRecorder = new MediaRecorder(audioStream, mimeType ? { mimeType, audioBitsPerSecond: 256000 } : { audioBitsPerSecond: 256000 });
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data && e.data.size > 0) blobChunks.push(e.data);
+                };
+                mediaRecorder.start(100);
+                console.log('[VOICE] MediaRecorder started, mimeType=' + (mimeType || 'default'));
+                audioSampleRate = 16000;
+                audioCtx = new AudioContext();
+                recordingSeconds = 0;
+                recordingTimer = setInterval(() => {
+                    recordingSeconds++;
+                    const timerEl = voiceOverlay.querySelector('.voice-timer');
+                    if (timerEl) timerEl.textContent = recordingSeconds + 's';
+                    if (recordingSeconds >= MAX_RECORD_SECONDS) {
+                        clearInterval(recordingTimer);
+                        recordingTimer = null;
+                        updateVoiceStatus('已达上限', '正在识别...');
+                        onVoiceDone();
+                    }
+                }, 1000);
+                showVoiceOverlay();
+            } catch (e) {
+                alert('无法启动录音: ' + e.message);
+            }
+        }
+
+        // 线性插值重采样
+        function doResample(chunks, srcRate, dstRate) {
+            let total = 0;
+            for (const c of chunks) total += c.length;
+            var flat = new Float32Array(total);
+            var off = 0;
+            for (const c of chunks) { flat.set(c, off); off += c.length; }
+            // 低通滤波防混叠 (截止频率 = 目标采样率 / 2 * 0.9)
+            var cutoffHz = dstRate * 0.5 * 0.9;
+            var rc = 1.0 / (2.0 * Math.PI * cutoffHz);
+            var dt = 1.0 / srcRate;
+            var alpha = dt / (rc + dt);
+            var filtered = new Float32Array(total);
+            filtered[0] = flat[0];
+            for (var j = 1; j < total; j++) {
+                filtered[j] = filtered[j-1] + alpha * (flat[j] - filtered[j-1]);
+            }
+            // 窗函数 sinc 重采样
+            var ratio = srcRate / dstRate;
+            var newLen = Math.ceil(total / ratio);
+            var result = new Float32Array(newLen);
+            var halfWin = 8;
+            for (var i = 0; i < newLen; i++) {
+                var sp = i * ratio;
+                var center = Math.round(sp);
+                var sum = 0, wsum = 0;
+                for (var k = Math.max(0, center - halfWin); k <= Math.min(total - 1, center + halfWin); k++) {
+                    var x = (k - sp) * Math.PI;
+                    var w = (x === 0) ? 1.0 : Math.sin(x) / x;
+                    w = w * (0.5 + 0.5 * Math.cos(Math.PI * (k - center) / (halfWin + 1)));
+                    sum += filtered[k] * w;
+                    wsum += w;
+                }
+                result[i] = wsum > 0 ? sum / wsum : 0;
+            }
+            return result;
+        }
+
+        // 编码 WAV
+        function encodeWAV(chunks, sampleRate) {
+            let total = 0;
+            for (const c of chunks) total += c.length;
+            const pcm = new Int16Array(total);
+            let off = 0;
+            for (const c of chunks) {
+                for (let i = 0; i < c.length; i++) {
+                    const s = Math.max(-1, Math.min(1, c[i]));
+                    const dither = (Math.random() - 0.5) / 32767; pcm[off++] = s < 0 ? (s + dither) * 0x8000 : (s + dither) * 0x7FFF;
+                }
+            }
+            const buf = new ArrayBuffer(44 + pcm.byteLength);
+            const v = new DataView(buf);
+            const ws = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+            ws(0, 'RIFF'); v.setUint32(4, 36 + pcm.byteLength, true); ws(8, 'WAVE');
+            ws(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+            v.setUint16(22, 1, true); v.setUint32(24, sampleRate, true);
+            v.setUint32(28, sampleRate * 2, true); v.setUint16(32, 2, true);
+            v.setUint16(34, 16, true); ws(36, 'data'); v.setUint32(40, pcm.byteLength, true);
+            new Uint8Array(buf, 44).set(new Uint8Array(pcm.buffer, pcm.byteOffset, pcm.byteLength));
+            let bin = '';
+            const bytes = new Uint8Array(buf);
+            for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+            return 'data:audio/wav;base64,' + btoa(bin);
+        }
+
+        // 点确定：停止录音 → 编码 WAV → POST API → 显示结果
+        async function onVoiceDone() {
+            if (isProcessing) { console.log('[VOICE] already processing, skip'); return; }
+            isProcessing = true;
+            console.log('[VOICE] onVoiceDone start');
+            if (recordingTimer) { clearInterval(recordingTimer); recordingTimer = null; }
+            // Stop recorder and construct blob
+            let blob = null;
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                blob = new Promise(resolve => {
+                    mediaRecorder.onstop = () => {
+                        resolve(new Blob(blobChunks, { type: mediaRecorder.mimeType || 'audio/webm' }));
+                    };
+                    mediaRecorder.stop();
+                });
+                blob = await blob;
+            } else if (blobChunks.length > 0) {
+                blob = new Blob(blobChunks, { type: 'audio/webm' });
+            }
+            audioStream?.getTracks().forEach(t => t.stop());
+            if (!voiceOverlay) { console.log('[VOICE] overlay removed during recording, abort'); return; }
+            if (!blob || blob.size === 0) { console.log('[VOICE] no data, blobChunks=' + blobChunks.length); removeVoiceOverlay(); return; }
+            console.log('[VOICE] blob ready, size=' + blob.size);
+            updateVoiceStatus('正在识别...', '正在转写文字...');
+            try {
+                const arrayBuffer = await blob.arrayBuffer();
+                const decodeCtx = new AudioContext();
+                const audioBuffer = await decodeCtx.decodeAudioData(arrayBuffer);
+                decodeCtx.close();
+                const channelData = audioBuffer.getChannelData(0);
+                const capturedRate = audioBuffer.sampleRate;
+                console.log('[VOICE] decoded: rate=' + capturedRate + ' samples=' + channelData.length);
+                const resampled = doResample([channelData], capturedRate, 16000);
+                console.log('[VOICE] resampled: ' + resampled.length);
+                // 音量归一化: 目标 85% 峰值，软限幅避免削波
+                let peak = 0;
+                for (let i = 0; i < resampled.length; i++) {
+                    const a = Math.abs(resampled[i]);
+                    if (a > peak) peak = a;
+                }
+                console.log('[VOICE] peak before normalize: ' + peak.toFixed(4));
+                if (peak > 0.001) {
+                    var gain = 0.85 / peak; if (gain > 2.5) gain = 2.5;
+                    for (let i = 0; i < resampled.length; i++) {
+                        var v = resampled[i] * gain;
+                        resampled[i] = Math.max(-1, Math.min(1, v));
+                    }
+                    console.log('[VOICE] applied gain=' + gain.toFixed(2));
+                } else {
+                    console.log('[VOICE] audio too quiet, skip normalize');
+                }
+                const dataUrl = encodeWAV([resampled], 16000);
+                console.log('[VOICE] dataUrl length: ' + dataUrl.length);
+                blobChunks = [];
+                const apiUrl = (API_BASE || '') + '/ai/asr';
+                console.log('[VOICE] POST ' + apiUrl);
+                const res = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ audio: dataUrl })
+                });
+                console.log('[VOICE] response status: ' + res.status);
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const json = await res.json();
+                console.log('[VOICE] response JSON: ' + JSON.stringify(json));
+                if (!json.success) throw new Error(json.message || '识别失败');
+                const text = (json.data || '').trim();
+                if (text) {
+                    transcribedResult = text;
+                    updateVoiceStatus('识别完成', text);
+                } else {
+                    updateVoiceStatus('未识别到内容', '请重试');
+                }
+                updateVoiceButtons();
+            } catch (e) {
+                console.error('[VOICE] error: ' + e.message);
+                updateVoiceStatus('识别失败', e.message);
+                updateVoiceButtons();
+            } finally {
+                isProcessing = false;
+            }
+        }
+
+        function updateVoiceButtons() {
+            if (!voiceOverlay || !voiceOverlay.isConnected) return;
+            const actionsDiv = voiceOverlay.querySelector('.voice-actions');
+            if (!actionsDiv) return;
+            if (transcribedResult) {
+                actionsDiv.innerHTML = '<button class="voice-cancel">取消</button><button class="voice-done">重新录音</button><button class="voice-send">发送</button>';
+                actionsDiv.querySelector('.voice-cancel').onclick = () => { transcribedResult = ''; removeVoiceOverlay(); };
+                actionsDiv.querySelector('.voice-done').onclick = () => { transcribedResult = ''; removeVoiceOverlay(); startRecording(); };
+                actionsDiv.querySelector('.voice-send').onclick = () => {
+                    removeVoiceOverlay();
+                    document.getElementById('btnMic').classList.remove('listening');
+                    const input = document.getElementById('userInput');
+                    input.value = transcribedResult;
+                    input.focus();
+                    sendChat();
+                };
+            } else {
+                actionsDiv.innerHTML = '<button class="voice-cancel">取消</button><button class="voice-done">确定</button>';
+                actionsDiv.querySelector('.voice-cancel').onclick = () => {
+                    if (recordingTimer) { clearInterval(recordingTimer); recordingTimer = null; }
+                    if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+                    if (audioCtx) audioCtx.close();
+                    if (audioStream) audioStream.getTracks().forEach(t => t.stop());
+                    removeVoiceOverlay();
+                };
+                actionsDiv.querySelector('.voice-done').onclick = onVoiceDone;
+            }
+        }
+
+        function updateVoiceStatus(status, text) {
+            console.log('[VOICE] updateStatus: ' + status + ' | ' + text);
+            var sDiv = document.getElementById('voiceStatus');
+            var tDiv = document.getElementById('voiceText');
+            if (sDiv) sDiv.textContent = status;
+            if (tDiv) { tDiv.textContent = text; tDiv.classList.remove('empty'); }
+        }
+
+        function showVoiceOverlay() {
+            removeVoiceOverlay(); // 修复: 先清理旧 overlay 防止叠层
+            voiceOverlay = document.createElement('div');
+            voiceOverlay.className = 'voice-overlay';
+            voiceOverlay.innerHTML = `
+                <div class="voice-card">
+                    <div class="voice-ring"><span style="font-size:28px;">🎤</span></div>
+                    <div class="voice-timer" id="voiceTimer">0s</div>
+                    <div class="voice-status" id="voiceStatus">正在聆听...</div>
+                    <div class="voice-text empty" id="voiceText">请说话...</div>
+                    <div class="voice-actions">
+                        <button class="voice-cancel">取消</button>
+                        <button class="voice-done">确定</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(voiceOverlay);
+            voiceOverlay.querySelector('.voice-cancel').onclick = () => {
+                if (recordingTimer) { clearInterval(recordingTimer); recordingTimer = null; }
+                if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+                if (audioCtx) audioCtx.close();
+                if (audioStream) audioStream.getTracks().forEach(t => t.stop());
+                removeVoiceOverlay();
+            };
+            voiceOverlay.querySelector('.voice-done').onclick = onVoiceDone;
+            document.getElementById('btnMic').classList.add('listening');
+        }
+
+        function stopRecording() {
+            document.getElementById('btnMic').classList.remove('listening');
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            }
+            audioStream?.getTracks().forEach(t => t.stop());
+            removeVoiceOverlay();
+        }
+        function removeVoiceOverlay() {
+            if (voiceOverlay) { voiceOverlay.remove(); voiceOverlay = null; }
+            // 录音结束/取消时恢复麦克风按钮状态
+            var micBtn = document.getElementById('btnMic');
+            if (micBtn) micBtn.classList.remove('listening');
+        }
+
+        // 为每条 AI 消息加上朗读按钮
+        function attachSpeakerButtons(container) {
+            container.querySelectorAll('.chat-bubble-ai').forEach(bubble => {
+                if (bubble.querySelector('.btn-speaker')) return;
+                const btn = document.createElement('button');
+                btn.className = 'btn-speaker';
+                btn.title = '朗读';
+                btn.innerHTML = '<i data-lucide="volume-2" size="14"></i>';
+                btn.onclick = (e) => { e.stopPropagation(); speakMessage(btn); };
+                bubble.appendChild(btn);
+            });
+            if (window.lucide) lucide.createIcons();
+            // 修复: 按钮重建后恢复全局朗读的高亮状态
+            if (isAutoSpeaking && autoTtsEnabled) {
+                var aiBubbles = container.querySelectorAll('.chat-bubble-ai'); var lastBubble = aiBubbles.length ? aiBubbles[aiBubbles.length - 1] : null;
+                if (lastBubble) {
+                    var btn = lastBubble.querySelector('.btn-speaker');
+                    if (btn) { btn.classList.add('speaking'); speakingBtn = btn; }
+                }
+            }
+        }
+
+        // AI 消息朗读（toggle：读 / 停 + 数字人头像动画）
+        let speakingBtn = null;
+        let speakingAvatar = null;
+        let currentAudio = null;
+        let isAutoSpeaking = false;
+
+        // 同步 AI 消息朗读按钮的 speaking 状态（自动播放时）
+        /**
+         * 同步最后一条 AI 消息的朗读按钮状态（高亮/恢复）
+         * 自动播放时由 playTts 调用，手动点击时由 speakMessage 调用
+         *
+         * @param {boolean} playing true=高亮朗读中, false=恢复默认
+         */
+        function syncSpeakerButton(playing) {
+            var bubbles = document.querySelectorAll('.chat-bubble-ai'); var bubble = bubbles.length ? bubbles[bubbles.length - 1] : null;
+            if (!bubble) return;
+            var btn = bubble.querySelector('.btn-speaker');
+            if (!btn) return;
+            var avatar = bubble.closest('.msg-row')?.querySelector('.msg-avatar');
+            var dh = document.getElementById('digitalHuman');
+            if (playing) {
+                btn.classList.add('speaking');
+                speakingBtn = btn;
+                if (avatar) { avatar.classList.add('speaking'); speakingAvatar = avatar; }
+                if (dh) dh.classList.add('speaking', 'show');
+            } else {
+                btn.classList.remove('speaking');
+                if (avatar) avatar.classList.remove('speaking');
+                if (dh) dh.classList.remove('speaking', 'show');
+                speakingBtn = null; speakingAvatar = null;
+            }
+        }
+
+        /**
+         * 手动点击某条消息的朗读按钮
+         * - 当前正在朗读 → 停止
+         * - 未朗读 → 开始朗读
+         */
+        function speakMessage(btn) {
+            // 当前按钮正在朗读 → 停止
+            if (btn.classList.contains('speaking')) {
+                stopAllTts();
+                btn.classList.remove('speaking');
+                var avatar = btn.closest('.msg-row')?.querySelector('.msg-avatar');
+                if (avatar) avatar.classList.remove('speaking');
+                var dh = document.getElementById('digitalHuman');
+                if (dh) dh.classList.remove('speaking', 'show');
+                speakingBtn = null; speakingAvatar = null;
+                return;
+            }
+            // 停止其他正在播放的
+            stopAllTts();
+            // 获取文本
+            var bubble = btn.closest('.chat-bubble-ai');
+            if (!bubble) return;
+            var text = bubble.textContent.trim();
+            if (!text) return;
+            // 高亮当前按钮
+            btn.classList.add('speaking');
+            var avatar = btn.closest('.msg-row')?.querySelector('.msg-avatar');
+            if (avatar) avatar.classList.add('speaking');
+            var dh = document.getElementById('digitalHuman');
+            if (dh) dh.classList.add('speaking', 'show');
+            speakingBtn = btn; speakingAvatar = avatar;
+            // 播放（非自动模式）
+            playTts(text, false);
+        }
+
+        /**
+         * 停止所有 TTS 播放（音频 + 浏览器合成）
+         */
+        function stopAllTts() {
+            try { if (window.speechSynthesis && window.speechSynthesis.cancel) window.speechSynthesis.cancel(); } catch(e) {}
+            if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+            isAutoSpeaking = false;
+            if (speakingBtn) { speakingBtn.classList.remove('speaking'); }
+            if (speakingAvatar) { speakingAvatar.classList.remove('speaking'); }
+            var dh = document.getElementById('digitalHuman');
+            if (dh) dh.classList.remove('speaking', 'show');
+            speakingBtn = null; speakingAvatar = null;
+        }
+
+        // 语音回复开关
+        var autoTtsEnabled = true; // 默认开启
+        var currentVoice = '106'; // 默认度博文
+
+        var VOICE_OPTIONS = [
+            { id: '106', name: '度博文', gender: '男', style: '专业讲解风，最适合景区导游', isDefault: true },
+            { id: '0',   name: '度小美', gender: '女', style: '自然流畅，通用' },
+            { id: '1',   name: '度小宇', gender: '男', style: '沉稳大气，适合讲解' },
+            { id: '3',   name: '度逍遥', gender: '男', style: '适合故事、文化类' },
+            { id: '4',   name: '度丫丫', gender: '女', style: '可爱活泼' }
+        ];
+
+        /**
+         * 全局语音开关切换
+         * - 播放中点击 → 停止播放 + 关闭自动
+         * - 空闲中点击 → 切换开/关
+         */
+        function toggleAutoTts() {
+            if (currentAudio) {
+                stopAllTts();
+                autoTtsEnabled = false;
+                updateToggleIcon(false);
+                return;
+            }
+            autoTtsEnabled = !autoTtsEnabled;
+            updateToggleIcon(autoTtsEnabled);
+        }
+
+        /**
+         * 更新全局语音开关的图标和颜色
+         * @param {boolean} enabled 开启状态
+         */
+        function updateToggleIcon(enabled) {
+            var btn = document.getElementById('btnTtsToggle');
+            if (!btn) return;
+            btn.style.color = enabled ? '#6366f1' : '#a8a29e';
+            btn.title = enabled ? '语音回复: 开' : '语音回复: 关';
+            var icon = btn.querySelector('i');
+            if (icon) icon.setAttribute('data-lucide', enabled ? 'volume-2' : 'volume-x');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        /**
+         * TTS 文本润色：结构化 key→value 转自然口语
+         *
+         * 策略：
+         * - "价格：免费" → "价格是免费"（加"是"）
+         * - "位置：通常位于景区" → "位置在景区"（加"在"，去冗余）
+         * - "服务：处理擦伤" → "服务是处理擦伤"（加"是"）
+         * - 完整句子保留不变，句号→省略号停顿
+         * - "猜你想问"段整段跳过
+         */
+        /**
+         * TTS 文本润色：跳过机械的"key：value"标题，只读正文
+         * 策略：已知属性名（价格/位置/服务等）→ 只读 value；去掉 markdown 格式
+         */
+        function polishText(str) {
+            if (!str) return "";
+            // 移除"猜你想问"之后的所有内容
+            var guessIdx = str.indexOf("💡");
+            if (guessIdx > 5) str = str.substring(0, guessIdx);
+            var lines = str.split("\n");
+            var out = [];
+            // 常见属性名 → TTS 时跳过标题，只读内容
+            var skipTitle = /^(价格|费用|门票|票价|位置|地址|地点|服务|亮点|特色|风格|建议|评价|等级|电话|开放|面积|高度|时长|交通|官网|海拔|时间|备注|注意|门票|收费)$/;
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i].trim();
+                if (!line) continue;
+                // 去除 markdown 格式标记
+                line = line.replace(/\*\*/g, "").replace(/###+\s*/g, "").replace(/^[-·•]\s*/g, "");
+                if (!line) continue;
+                // 处理 key：value 结构
+                var m = line.match(/^([^:：]+)[：:](.*)$/);
+                if (m) {
+                    var key = m[1].trim(), val = m[2].trim();
+                    if (skipTitle.test(key)) {
+                        // 跳过标题，只读内容（如"价格：免费"→"免费"）
+                        line = val;
+                    } else if (/(一般|通常)?位于/.test(val)) {
+                        val = val.replace(/^(一般|通常)\s*/, "");
+                        line = val;
+                    } else if (val) {
+                        line = naturalizePair(key, val);
+                    }
+                }
+                if (line) out.push(line);
+            }
+            str = out.join("，");
+            // 句号变省略号（自然停顿）
+            str = str.replace(/。/g, "……");
+            str = str.replace(/……，/g, "……");
+            str = str.replace(/，{2,}/g, "，");
+            str = str.replace(/，+$/, "").replace(/^，+/, "");
+            return str.trim();
+        }
+        function naturalizePair(key, val) {
+            key = key.trim(); val = val.trim();
+            if (!val) return key;
+            if (/(价格|费用|门票|时长|票价|特色|风格|建议|评价|等级|电话|开放|面积|高度|服务|亮点|注意|交通|官网|海拔)/.test(key)) {
+                return key + '是' + val;
+            }
+            if (/(位置|地址|地点|位于|处在)/.test(key)) {
+                // 避免冗余："位置在通常位于xxx" → "位置在xxx"
+                val = val.replace(/^(一般|通常)?(?:位于|处在|处于|设在|在于|在|于)\s*/, '');
+                return key + '在' + val;
+            }
+            return key + '，' + val;
+        }
+
+        /**
+         * 调用百度 TTS 朗读文本
+         *
+         * @param {string} rawText 原始文本（未润色）
+         * @param {boolean} isAuto 是否为自动播放（全局开关触发）
+         */
+        function playTts(rawText, isAuto) {
+            if (!rawText || !rawText.trim()) return;
+            // 润色文字
+            var text = polishText(rawText);
+            if (text.length > 500) text = text.substring(0, 500);
+            // 设置自动播放标志
+            if (isAuto) isAutoSpeaking = true;
+            console.log('[TTS] speak ' + text.length + ' chars, voice=' + currentVoice + ' auto=' + isAutoSpeaking);
+            // 停止之前的播放
+            try { if (window.speechSynthesis && window.speechSynthesis.cancel) window.speechSynthesis.cancel(); } catch(e) {}
+            if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+            // 自动播放：清除旧按钮状态，确保同时只有一个高亮
+            if (isAuto) {
+                if (speakingBtn) { speakingBtn.classList.remove("speaking"); speakingBtn = null; }
+                if (speakingAvatar) { speakingAvatar.classList.remove("speaking"); speakingAvatar = null; }
+                var prevDh = document.getElementById("digitalHuman");
+                if (prevDh) prevDh.classList.remove("speaking", "show");
+            }
+            // 自动播放：立即高亮按钮（无需等待网络）
+            if (isAutoSpeaking) syncSpeakerButton(true);
+            // 调用后端 TTS
+            fetch((API_BASE || '') + '/ai/tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: text, voice: currentVoice })
+            }).then(function(res) {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.blob();
+            }).then(function(blob) {
+                var url = URL.createObjectURL(blob);
+                currentAudio = new Audio(url);
+                currentAudio.onended = function() { URL.revokeObjectURL(url); currentAudio = null; isAutoSpeaking = false; if (speakingBtn) { speakingBtn.classList.remove("speaking"); } if (speakingAvatar) { speakingAvatar.classList.remove("speaking"); } var dh = document.getElementById("digitalHuman"); if (dh) dh.classList.remove("speaking", "show"); speakingBtn = null; speakingAvatar = null; };
+                currentAudio.onerror = function() { URL.revokeObjectURL(url); currentAudio = null; isAutoSpeaking = false; if (speakingBtn) { speakingBtn.classList.remove("speaking"); } if (speakingAvatar) { speakingAvatar.classList.remove("speaking"); } var dh = document.getElementById("digitalHuman"); if (dh) dh.classList.remove("speaking", "show"); speakingBtn = null; speakingAvatar = null; speakTextBrowser(text); };
+                return currentAudio.play()["catch"](function(e) { console.warn("[Audio] play failed:", e); });
+            }).catch(function(e) {
+                console.warn('[TTS] failed: ' + e.message + ', fallback to browser');
+                // 后端失败时用浏览器 TTS 兜底
+                speakTextBrowser(text);
+                // 兜底结束后清理状态
+                isAutoSpeaking = false;
+                if (speakingBtn) { speakingBtn.classList.remove("speaking"); } if (speakingAvatar) { speakingAvatar.classList.remove("speaking"); } var dh = document.getElementById("digitalHuman"); if (dh) dh.classList.remove("speaking", "show"); speakingBtn = null; speakingAvatar = null;
+            });
+        }
+
+        function speakTextBrowser(text) {
+            if (!('speechSynthesis' in window)) return;
+            try { if (window.speechSynthesis && window.speechSynthesis.cancel) window.speechSynthesis.cancel(); } catch(e) {}
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = 'zh-CN';
+            u.rate = 1.0;
+            // 浏览器 TTS 结束/错误时清理按钮状态（否则按钮会一直亮）
+            u.onend = function() { isAutoSpeaking = false; if (speakingBtn) { speakingBtn.classList.remove("speaking"); } if (speakingAvatar) { speakingAvatar.classList.remove("speaking"); } var dh = document.getElementById("digitalHuman"); if (dh) dh.classList.remove("speaking", "show"); speakingBtn = null; speakingAvatar = null; };
+            u.onerror = function() { isAutoSpeaking = false; if (speakingBtn) { speakingBtn.classList.remove("speaking"); } if (speakingAvatar) { speakingAvatar.classList.remove("speaking"); } var dh = document.getElementById("digitalHuman"); if (dh) dh.classList.remove("speaking", "show"); speakingBtn = null; speakingAvatar = null; };
+            window.speechSynthesis.speak(u);
+        }
+
+        // ====== 偏好管理 ======
+        const PREF_OPTIONS = {
+            interest: { label: '兴趣偏好', opts: ['景点','美食','文化','路线','综合'] },
+            duration: { label: '可用时间', opts: ['半天','全天','2小时','3小时','4小时','6小时'] },
+            crowd:    { label: '同行人群', opts: ['老人','小孩','情侣','独自','家庭','朋友'] }
+        };
+
+        
+        // ====== 语音设置弹窗 ======
+        function showVoiceSettings() {
+            var container = document.getElementById('voiceOptions');
+            if (!container) { console.error('voiceOptions not found'); return; }
+            var html = '';
+            for (var i = 0; i < VOICE_OPTIONS.length; i++) {
+                var v = VOICE_OPTIONS[i];
+                var selected = (v.id === currentVoice);
+                html += '<div onclick="selectVoice(\'' + v.id + '\')" style="padding:14px 16px;border:2px solid ' + (selected ? '#f59e0b' : '#e7e5e4') + ';border-radius:12px;cursor:pointer;transition:all 0.15s;background:' + (selected ? '#fffbeb' : '#fff') + ';" id="voice-opt-' + v.id + '">';
+                html += '<div style="display:flex;align-items:center;gap:10px;">';
+                html += '<div style="width:36px;height:36px;border-radius:50%;background:' + (selected ? '#f59e0b' : '#e7e5e4') + ';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">' + (v.gender === '女' ? '👩' : '👨') + '</div>';
+                html += '<div style="flex:1;">';
+                html += '<div style="font-weight:600;color:#292524;font-size:15px;">' + v.name + ' <span style="font-weight:400;color:#a8a29e;font-size:12px;">(' + v.gender + ')</span></div>';
+                html += '<div style="font-size:12px;color:#78716c;margin-top:2px;">' + v.style + '</div>';
+                html += '</div>';
+                if (selected) html += '<span style="color:#f59e0b;font-size:13px;font-weight:600;">✓ 当前</span>';
+                html += '</div></div>';
+            }
+            html += '<div style="margin-top:8px;padding:10px 14px;background:#f5f5f4;border-radius:8px;font-size:12px;color:#78716c;">💡 提示</div>';
+            container.innerHTML = html;
+            var modal = document.getElementById('voiceModal');
+            modal.style.cssText = 'display:flex;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;z-index:9999;animation:none;opacity:1;visibility:visible;'
+                    }
+
+        function selectVoice(voiceId) {
+            currentVoice = voiceId;
+            showVoiceSettings();
+            var selVoice = null;
+            for (var i = 0; i < VOICE_OPTIONS.length; i++) {
+                if (VOICE_OPTIONS[i].id === voiceId) { selVoice = VOICE_OPTIONS[i]; break; }
+            }
+            if (selVoice) {
+                setTimeout(function() { playTts('你好，我是' + selVoice.name + '，很高兴为你介绍美丽的灵山景区', false); }, 100);
+            }
+        }
+
+        function saveVoiceSettings() {
+            localStorage.setItem('scenic_voice_id', currentVoice);
+            document.getElementById('voiceModal').style.display = 'none';
+        }
+
+        // 加载已保存的音色
+        (function() {
+            var saved = localStorage.getItem('scenic_voice_id');
+            if (saved) currentVoice = saved;
+        })();
+
+        async function showPreferenceModal() {
+            let savedPrefs = {};
+            try {
+                const resp = await fetch(API_BASE + '/ai/preferences');
+                const data = await resp.json();
+                if (data.success && data.data) savedPrefs = data.data;
+            } catch (e) {}
+
+            const sec = document.getElementById('prefSections');
+            let html = '';
+            for (const [key, def] of Object.entries(PREF_OPTIONS)) {
+                html += '<div class="pref-section"><div class="pref-label">' + def.label + '</div><div class="pref-options">' + def.opts.map(o => {
+                    const selected = savedPrefs[key] && savedPrefs[key].split(',').includes(o);
+                    return '<span class="pref-option' + (selected ? ' selected' : '') + '" data-key="' + key + '" data-val="' + o + '" onclick="togglePrefOption(this)">' + o + '</span>';
+                }).join('') + '</div></div>';
+            }
+            sec.innerHTML = html;
+            var modal = document.getElementById('prefModal');
+            modal.style.cssText = 'display:flex;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;z-index:9999;animation:none;opacity:1;visibility:visible;'
+                    }
+
+        function togglePrefOption(el) {
+            // 多选：点击切换选中状态
+            el.classList.toggle('selected');
+        }
+
+        async function savePreferences() {
+            const prefs = {};
+            document.querySelectorAll('#prefSections .pref-option.selected').forEach(el => {
+                const k = el.dataset.key;
+                prefs[k] = prefs[k] ? prefs[k] + ',' + el.dataset.val : el.dataset.val;
+            });
+            localStorage.setItem(PREFS_KEY, '1');
+            document.getElementById('prefModal').style.display = 'none';
+            try {
+                await fetch(`${API_BASE}/ai/preferences`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(prefs)
+                });
+            } catch (e) {}
+        }
+
+        function skipPreferences() {
+            localStorage.setItem(PREFS_KEY, '1');
+            document.getElementById('prefModal').style.display = 'none';
+        }
+
+        function showPrefModalIfFirstTime() {
+            if (localStorage.getItem(PREFS_KEY) !== '1') {
+                setTimeout(showPreferenceModal, 800);  // 等页面渲染完再弹
+            }
+        }
+
+        // ====== 会话管理 ======
+        function generateSessionId() {
+            return 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+        }
+
+        /** 清除会话列表缓存（新建/删除会话后调用） */
+        function clearSessionCache() { cachedSessions = null; }
+
+        // 新建空白会话 —— 立即清除旧选中、切换界面，再异步刷新列表
+        function createNewSession() {
+            // 清除所有高亮
+            document.querySelectorAll('.session-card').forEach(c => c.classList.remove('active'));
+            currentSessionId = generateSessionId();
+            // 立即可见：欢迎页 + 输入框聚焦
+            document.getElementById('chatBox').innerHTML = `<div class="welcome-hero" id="welcomeHero">
+                <div class="hero-icon">🏯</div><h2>您好，我是小导</h2>
+                <p>我已经研读了灵山景区所有资料，关于美食、景点、路线，尽管问我</p>
+                <div class="quick-tags">
+                    <span class="quick-tag" onclick="quickAsk('灵山有什么必去的景点？')">🏔 必去景点</span>
+                    <span class="quick-tag" onclick="quickAsk('灵山有什么好吃的推荐？')">🍜 美食推荐</span>
+                    <span class="quick-tag" onclick="quickAsk('帮我规划一条游览路线')">🗺 游览路线</span>
+                </div></div>`;
+            document.getElementById('userInput').value = '';
+            document.getElementById('userInput').focus();
+            // 后台异步刷新侧边栏（追加新会话卡片）
+            renderSessionList();
+            toggleSidebar();
+            clearSessionCache(); // 清除缓存，下次 renderSessionList 重新获取
+        }
+
+        // 从后端拉取会话列表
+        async function loadSessionList() {
+            var url = API_BASE + '/ai/history/sessions';
+            // 缓存命中则直接返回，避免重复请求
+            if (cachedSessions) { console.log('[LL] cache hit, returning ' + cachedSessions.length + ' sessions'); return cachedSessions; }
+            console.log('[LL] fetch: ' + url);
+            // 重试机制：最多等 10 秒，共尝试 2 次
+            for (var attempt = 1; attempt <= 2; attempt++) {
+                try {
+                    var ctrl = new AbortController();
+                    var timer = setTimeout(function() { ctrl.abort(); console.log('[LL] attempt ' + attempt + ' timeout'); }, 10000);
+                    var resp = await fetch(url, { signal: ctrl.signal });
+                    clearTimeout(timer);
+                    console.log('[LL] response status: ' + resp.status);
+                    var data = await resp.json();
+                    console.log('[LL] parsed: success=' + data.success + ', dataLen=' + (data.data ? data.data.length : 'null'));
+                    cachedSessions = (data.success && data.data) ? data.data : [];
+                    return cachedSessions;
+                } catch (e) {
+                    console.warn('[LL] attempt ' + attempt + ' failed: ' + e.message);
+                    if (attempt >= 2) {
+                        console.error('[LL] all attempts failed');
+                        return [];
+                    }
+                }
+            }
+            return [];
+        }
+
+        // 渲染侧边栏（静默更新，不做加载动画——全局加载条已提供反馈）
+        async function renderSessionList() {
+            const sessions = await loadSessionList();
+            const list = document.getElementById('sessionList');
+            if (sessions.length === 0) {
+                list.innerHTML = '<div class="section-label">历史对话</div><div style="text-align:center;color:#a8a29e;font-size:13px;padding:20px 0;">暂无记录</div>';
+                return;
+            }
+            list.innerHTML = '<div class="section-label">历史对话</div>' + sessions.map(s => `
+                <div class="session-card ${s.sessionId === currentSessionId ? 'active' : ''}"
+                     onclick="switchSession('${s.sessionId}')">
+                    <div class="session-info">
+                        <div class="session-title" title="${escapeHtml(s.title)}">${escapeHtml(s.title)}</div>
+                        <div class="session-meta">${(s.messageCount != null ? s.messageCount : 0)} 条 · ${fmtTime(s.lastUpdateTime)}</div>
+                    </div>
+                    <button class="session-del" onclick="event.stopPropagation();deleteSession('${s.sessionId}')" title="删除">
+                        <i data-lucide="trash-2" size="13"></i>
+                    </button>
+                </div>`).join('');
+            lucide.createIcons();
+        }
+
+        // 切换到指定会话，从后端加载完整消息历史
+        // ???????????????????
+        async function switchSession(sessionId) {
+            try {
+                console.log('[LOAD] start, sessionId=' + sessionId);
+                stopAllTts();
+                if (sessionId === currentSessionId && document.querySelector('.chat-bubble-ai')) {
+                    console.log('[LOAD] same session, skip');
+                    return;
+                }
+                currentSessionId = sessionId;
+                updateActiveCard(sessionId);
+                hideWelcome();
+                document.getElementById('userInput').value = '';
+                var spin = document.getElementById('initialSpinner');
+                if (spin) spin.remove();
+                var box = document.getElementById('chatBox');
+                box.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;"><div style="width:36px;height:36px;border:3px solid #e7e5e4;border-top-color:#f59e0b;border-radius:50%;animation:spin 0.8s linear infinite;"></div></div>';
+                var url = API_BASE + '/ai/history/messages?sessionId=' + encodeURIComponent(sessionId);
+                console.log('[LOAD] fetching: ' + url);
+                var resp = await fetch(url);
+                console.log('[LOAD] response status: ' + resp.status);
+                var data = await resp.json();
+                console.log('[LOAD] response JSON: success=' + data.success + ', dataLength=' + (data.data ? data.data.length : 'null'));
+                var html = '';
+                if (data.success && data.data && data.data.length > 0) {
+                    console.log('[LOAD] rendering ' + data.data.length + ' messages');
+                    for (var i = 0; i < data.data.length; i++) {
+                        try {
+                            var msg = data.data[i];
+                            console.log('[LOAD] msg[' + i + '] role=' + msg.role + ' contentLen=' + (msg.content ? msg.content.length : 'null'));
+                            if (msg.role === 'user') {
+                                if (!msg.content) continue;
+                                html += '<div class="msg-row user"><div class="chat-bubble-user">' + escapeHtml(msg.content) + '</div></div>';
+                            } else if (msg.role === 'assistant') {
+                                var content = msg.content || '';
+                                var md = content;
+                                try { md = marked.parse(preprocessMarkdown(content)); }
+                                catch(e1) { try { md = marked.parse(content); }
+                                catch(e2) { md = '<pre style="white-space:pre-wrap;font-family:inherit;">' + escapeHtml(content) + '</pre>'; } }
+                                html += '<div class="msg-row"><div class="msg-avatar ai">' + '🏯' + '</div><div class="chat-bubble-ai"><div class="markdown-body">' + md + '</div></div></div>';
+                            }
+                        } catch(perMsgErr) {
+                            console.warn('[LOAD] skip bad message[' + i + ']:', perMsgErr.message);
+                        }
+                    }
+                } else {
+                    console.log('[LOAD] no messages, showing welcome');
+                    html = '<div class="welcome-hero"><div class="hero-icon">' + '🏯' + '</div><h2>' + '您好，我是小导' + '</h2><p>' + '这个会话还没有消息记录' + '</p></div>';
+                }
+                box.innerHTML = html;
+                console.log('[LOAD] innerHTML set, htmlLen=' + html.length);
+                box.querySelectorAll('.markdown-body').forEach(cleanupSingleTitle);
+                // 手机端：加载历史对话后自动收起侧边栏
+                if (window.innerWidth <= 768) toggleSidebar();
+                attachSpeakerButtons(box);
+                console.log('[LOAD] attachSpeakerButtons done');
+            } catch (e) {
+                console.error('[LOAD] error:', e.message, e.stack);
+                document.getElementById('chatBox').innerHTML = '<div style="text-align:center;color:#f43f5e;padding:40px;">' + '加载失败: ' + e.message + '<br><button onclick="location.reload()" style="margin-top:12px;padding:8px 16px;border:1px solid #f43f5e;border-radius:8px;background:#fff;cursor:pointer;">' + '刷新重试' + '</button></div>';
+            }
+            box = document.getElementById('chatBox');
+            box.scrollTop = box.scrollHeight;
+            renderSessionList();
+        }
+
+        function updateActiveCard(sessionId) {
+            document.querySelectorAll('.session-card').forEach(card => {
+                card.classList.toggle('active', card.onclick?.toString().includes(sessionId));
+            });
+        }
+
+        function deleteSession(sessionId) {
+            showConfirmModal('确定要删除这个对话吗？删除后不可恢复。', async () => {
+                // 先在 UI 上移除卡片
+                const card = document.querySelector(`.session-card[onclick*="${sessionId}"]`);
+                if (card) card.remove();
+                // 等后端删除完成后再刷新列表（避免竞态：删了又拉回来）
+                await fetch(`${API_BASE}/ai/history/${encodeURIComponent(sessionId)}`, { method: 'DELETE' }).catch(()=>{});
+                cachedSessions = null;
+                await renderSessionList();
+            });
+        }
+
+        // ====== 自定义确认浮窗 ======
+        function showConfirmModal(message, onConfirm) {
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.innerHTML = `
+                <div class="modal-card">
+                    <p>${message}</p>
+                    <div class="modal-actions">
+                        <button class="modal-btn cancel">取消</button>
+                        <button class="modal-btn confirm">确认删除</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(overlay);
+            overlay.querySelector('.cancel').onclick = () => overlay.remove();
+            overlay.querySelector('.confirm').onclick = () => { overlay.remove(); onConfirm(); };
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+        }
+
+        // 切换对话模式
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('modeNormal').className = 'mode-btn' + (mode === 'normal' ? ' active' : '');
+            document.getElementById('modeDeep').className = 'mode-btn' + (mode === 'deep' ? ' active deep' : '');
+            // 更新输入框提示
+            const input = document.getElementById('userInput');
+            input.placeholder = mode === 'deep'
+                ? '使用Agentic RAG 模式，更精细化分析问题...'
+                : '采用普通RAG模式，快速准确回答...';
+        }
+
+        // ====== 聊天核心 ======
+        async function sendChat() {
+            const input = document.getElementById('userInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+            hideWelcome();
+            if (!currentSessionId) currentSessionId = generateSessionId();
+            const box = document.getElementById('chatBox');
+
+            // 1. 插入用户气泡
+            const userRow = document.createElement('div');
+            userRow.className = 'msg-row user';
+            userRow.innerHTML = `<div class="chat-bubble-user">${escapeHtml(msg)}</div>`;
+            box.appendChild(userRow);
+
+            // 2. 插入 AI 占位（三点动画）
+            const aiRow = document.createElement('div');
+            aiRow.className = 'msg-row';
+            aiRow.innerHTML = `<div class="msg-avatar ai">🏯</div><div class="chat-bubble-ai"><div class="markdown-body"><div class="typing-dots"><span></span><span></span><span></span></div></div></div>`;
+            box.appendChild(aiRow);
+            const mdDiv = aiRow.querySelector('.markdown-body');
+            input.value = ''; box.scrollTop = box.scrollHeight;
+
+            // 3. SSE 流式接收 AI 回复
+            let fullText = "", buffer = "", currentEvent = '';
+            try {
+                const response = await fetch(
+                    `${API_BASE}/ai/chat/stream?message=${encodeURIComponent(msg)}&sessionId=${encodeURIComponent(currentSessionId)}&mode=${currentMode}`
+                );
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                // 用 rAF 节流渲染，避免高频 innerHTML 导致浏览器丢帧（标题一闪而过）
+                let rafId = null;
+                /** 流式渲染：将当前 fullText 转为 markdown 并显示 */
+                function flushRender() {
+                    try {
+                        mdDiv.innerHTML = marked.parse(preprocessMarkdown(fullText));
+                        cleanupSingleTitle(mdDiv);
+                        box.scrollTop = box.scrollHeight;
+                    } catch(e) { mdDiv.innerHTML = escapeHtml(fullText).replace(/\n/g, "<br>"); }
+                    rafId = null;
+                }
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    let lines = buffer.split('\n'); buffer = lines.pop();
+                    for (let line of lines) {
+                        // SSE event 通道：接收情感数据但不进入文本
+                        if (line.startsWith('event:')) {
+                            currentEvent = line.substring(6).trim();
+                            continue;
+                        }
+                        if (line.startsWith('data:')) {
+                            let content = line.substring(5).replace(/^ /, ""); // 去掉 "data: " 后的前导空格
+                            // 情感事件：驱动数字人，文本跳过
+                            if (currentEvent === 'sentiment') {
+                                currentSentiment = content.trim();
+                                updateDigitalHuman();
+                                currentEvent = '';
+                                continue;
+                            }
+                            currentEvent = '';
+                            try { if (content.trim().startsWith('"')) content = JSON.parse(content.trim()); }
+                            catch (e) { content = content.replace(/^"|"$/g, '').replace(/\\n/g, '\n'); }
+                            fullText += String(content);
+                        }  // end data: if
+                    }
+                    if (rafId === null) {
+                        rafId = requestAnimationFrame(flushRender);
+                    }
+                }
+                // 流结束后：取消待执行的回调，按欧渲染
+                if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+                attachSpeakerButtons(box);
+                flushRender(); // 最后渲染 markdown，避免 Lucide 破坏 DOM
+                // 自动语音合成播放(仅在开关打开时)
+                if (autoTtsEnabled && fullText && fullText.trim()) {
+                    console.log('[AUTO] auto-play triggered');
+                    playTts(fullText, true);
+                }
+            } catch (error) {
+                if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+                mdDiv.innerHTML = '<span style="color:#f43f5e;font-weight:600;">小导断线了，请刷新重试</span>';
+            }
+
+            // 刷新侧边栏（后端已保存本轮对话到 Redis）
+            clearSessionCache();
+            renderSessionList();
+        }
+
+        // ====== 工具函数 ======
+        function escapeHtml(str) {
+            if (!str) return '';
+            const d = document.createElement('div'); d.textContent = str; return d.innerHTML;
+        }
+
+        // 去掉单项目标题的多余数字编号（如 "### 1. 灵山大佛" → "### 灵山大佛"）
+        function cleanupSingleTitle(container) {
+            const h3s = container.querySelectorAll('h3');
+            if (h3s.length === 1) {
+                h3s[0].textContent = h3s[0].textContent.replace(/^\d+\.\s*/, '');
+            }
+        }
+
+        // 相对时间格式化
+        function fmtTime(timeStr) {
+            if (!timeStr) return '';
+            try {
+                const d = new Date(timeStr), now = new Date(), diff = now - d;
+                if (diff < 60000) return '刚刚';
+                if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
+                if (diff < 86400000 && d.getDate() === now.getDate()) return '今天';
+                return (d.getMonth() + 1) + '/' + d.getDate();
+            } catch (e) { return ''; }
+        }
+
+        // ====== 启动：加载中 → 恢复最近会话或新建 ======
+        async function init() {
+            showLoader();
+            var sp = document.getElementById("initialSpinner");
+            try {
+                var sessions = await loadSessionList();
+                if (sessions.length > 0) {
+                    console.log("[INIT] found " + sessions.length + " sessions, loading first");
+                    try {
+                        await switchSession(sessions[0].sessionId);
+                    } catch(switchErr) {
+                        console.error("[INIT] switchSession failed:", switchErr.message);
+                        currentSessionId = generateSessionId();
+                        showWelcomePage();
+                    }
+                } else {
+                    console.log("[INIT] no sessions, showing welcome");
+                    currentSessionId = generateSessionId();
+                    showWelcomePage();
+                }
+            } catch(loadErr) {
+                console.error("[INIT] loadSessionList failed:", loadErr.message);
+                currentSessionId = generateSessionId();
+                showWelcomePage();
+            }
+            if (sp) sp.remove();
+            try { renderSessionList(); } catch(e) { console.error("[INIT] renderSessionList failed:", e.message); }
+            hideLoader();
+            document.getElementById("userInput").focus();
+            showPrefModalIfFirstTime();
+        }
+
+        /** 显示欢迎页（无历史会话或加载失败时） */
+        function showWelcomePage() {
+            document.getElementById("chatBox").innerHTML = `
+                <div class="welcome-hero" id="welcomeHero">
+                    <div class="hero-icon">🏯</div><h2>您好，我是小导</h2>
+                    <p>我已经研读了灵山景区所有资料，关于美食、景点、路线，尽管问我</p>
+                    <div class="quick-tags">
+                        <span class="quick-tag" onclick="quickAsk('灵山有什么必去的景点？')">🏔 必去景点</span>
+                        <span class="quick-tag" onclick="quickAsk('灵山有什么好吃的推荐？')">🍜 美食推荐</span>
+                        <span class="quick-tag" onclick="quickAsk('帮我规划一条游览路线')">🗺 游览路线</span>
+                    </div></div>`;
+        }
+
+
+        /** 页面加载完成后自动初始化 */
+        // BTN BIND
+        (function() {
+            try {
+                var a = document.getElementById('btnVoiceSettings');
+                var b = document.getElementById('btnPreferences');
+                if (a) a.onclick = function() {
+                    try { showVoiceSettings(); }
+                    catch(e) { console.error('[BTN voice]', e); alert('Error: ' + e.message); }
+                };
+                if (b) b.onclick = function() {
+                    try { showPreferenceModal(); }
+                    catch(e) { console.error('[BTN pref]', e); alert('Error: ' + e.message); }
+                };
+            } catch(pe) { console.error('[BTN bind]', pe); }
+        })();
+
+        init();
+    </script>
+</body>
+</html>

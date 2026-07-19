@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<title>景区导游 API 文档</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif;background:#f5f7fa;color:#333;line-height:1.6;padding:20px}
+.container{max-width:1100px;margin:0 auto}
+.header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:40px;border-radius:12px;margin-bottom:30px;text-align:center}
+.header h1{font-size:2em;margin-bottom:8px}.header p{opacity:.9;font-size:1.1em}
+.base-info{background:#fff;padding:20px 28px;border-radius:10px;margin-bottom:24px;border-left:4px solid #667eea}
+.base-info code{background:#f0f4ff;padding:2px 8px;border-radius:4px;color:#5a67d8;font-size:.95em}
+.section{background:#fff;border-radius:10px;margin-bottom:20px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.section-title{padding:18px 28px;font-size:1.25em;font-weight:700;color:#2d3748;border-bottom:1px solid #edf2f7;display:flex;align-items:center;gap:10px}
+.section-title .badge{background:#667eea;color:#fff;font-size:.7em;padding:3px 10px;border-radius:20px}
+.endpoint{padding:24px 28px;border-bottom:1px solid #f0f4f8}.endpoint:last-child{border-bottom:none}
+.method-get,.method-post,.method-delete,.method-put{display:inline-block;padding:4px 12px;border-radius:6px;font-weight:700;font-size:.85em;margin-right:10px;min-width:60px;text-align:center}
+.method-get{background:#c6f6d5;color:#22543d}.method-post{background:#bee3f8;color:#2a4365}.method-delete{background:#fed7d7;color:#742a2a}.method-put{background:#fefcbf;color:#744210}
+.path{font-family:Consolas,monospace;font-size:1.05em;font-weight:600;color:#2d3748}
+.desc{color:#718096;margin:8px 0 16px;font-size:.95em}
+.params{width:100%;border-collapse:collapse;margin:12px 0;font-size:.92em}
+.params th{background:#f7fafc;text-align:left;padding:10px 14px;border:1px solid #e2e8f0;font-weight:600;color:#4a5568}
+.params td{padding:10px 14px;border:1px solid #e2e8f0;vertical-align:top}
+.params td:first-child{font-family:Consolas,monospace;color:#2b6cb0;font-weight:600}
+.params td:nth-child(2){color:#718096}
+.example{background:#1a202c;color:#e2e8f0;padding:16px 20px;border-radius:8px;margin:12px 0;overflow-x:auto;font-family:Consolas,monospace;font-size:.88em;line-height:1.5;white-space:pre-wrap;word-break:break-all}
+.example-label{display:inline-block;background:#4a5568;color:#e2e8f0;padding:2px 8px;border-radius:4px;font-size:.75em;margin-bottom:8px}
+.toc{background:#fff;padding:20px 28px;border-radius:10px;margin-bottom:24px;border-left:4px solid #48bb78}
+.toc h3{margin-bottom:12px;color:#2d3748}.toc a{display:block;color:#5a67d8;text-decoration:none;padding:4px 0;font-size:.95em}
+.toc a:hover{text-decoration:underline}
+.note{background:#fffbeb;border:1px solid #fbbf24;border-radius:8px;padding:12px 16px;margin:12px 0;font-size:.9em;color:#92400e}
+.auth-note{background:#e6fffa;border:1px solid #81e6d9;border-radius:8px;padding:12px 16px;margin:12px 0;font-size:.9em;color:#234e52}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header"><h1>景区智慧导游 API 文档</h1>
+<p>后端域名：ggysummer.zeabur.app | 基础路径：/ai | 数据格式：JSON</p>
+<p style="font-size:.9em;margin-top:8px">版本：v2.0 | 更新时间：2026-07-18</p></div>
+
+<div class="base-info"><p><strong>通用说明</strong></p>
+<p>• 所有接口基础路径：<code>/ai</code>，完整 URL：<code>https://ggysummer.zeabur.app/ai/...</code></p>
+<p>• 统一响应结构 <code>Result&lt;T&gt;</code>：<code>{code, message, data, success}</code></p>
+<p>• <code>code=200</code> 表示成功，<code>code≥400</code> 表示失败</p>
+<p>• <strong>JWT 鉴权</strong>：除登录/注册外，所有接口需在 Header 携带 <code>Authorization: Bearer &lt;token&gt;</code></p>
+<p>• SSE 流式接口（<code>/chat/stream</code>）返回 <code>text/event-stream</code>，非 JSON</p>
+<p>• TTS 接口返回 <code>application/octet-stream</code>（MP3 二进制流）</p>
+<p>• 所有接口已配置 <code>@CrossOrigin(origins = "*")</code>，支持跨域</p></div>
+
+<div class="toc"><h3>目录</h3>
+<a href="#auth">1. 用户认证接口（AuthController）</a>
+<a href="#chat">2. 对话接口（ChatController）</a>
+<a href="#history">3. 历史会话接口（HistoryController）</a>
+<a href="#prefs">4. 用户偏好接口（PreferencesController）</a>
+<a href="#asr">5. 语音识别接口（AsrController）</a>
+<a href="#tts">6. 语音合成接口（TtsController）</a>
+<a href="#import">7. 知识库导入接口（ImportController）</a>
+<a href="#rag">8. 知识库管理接口（RagController）</a>
+<a href="#admin">9. 管理员接口（AdminController）</a>
+<a href="#analytics">10. 数据分析接口（AnalyticsController）</a></div>
+
+<!-- ==================== 1. Auth ==================== -->
+<div class="section" id="auth">
+<div class="section-title">1. 用户认证接口 <span class="badge">AuthController</span></div>
+
+<div class="endpoint">
+<span class="method-post">POST</span><span class="path">/ai/auth/register</span>
+<p class="desc">用户注册，返回 JWT token。默认角色为 USER。</p>
+<table class="params"><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
+<tr><td>username</td><td>String</td><td>是</td><td>用户名（唯一）</td></tr>
+<tr><td>password</td><td>String</td><td>是</td><td>密码</td></tr>
+</table>
+<p class="example-label">请求示例</p>
+<div class="example">POST https://ggysummer.zeabur.app/ai/auth/register
+Content-Type: application/json
+
+{"username": "testuser", "password": "test123"}</div>
+<p class="example-label">响应示例</p>
+<div class="example">{
+  "code": 200,
+  "message": "注册成功",
+  "success": true,
+  "data": {
+    "userId": "efac5edb-655a-4184-aba8-99ec5d24de7c",
+    "username": "testuser",
+    "token": "eyJhbGciOiJIUzI1NiJ9...",
+    "role": "USER"
+  }
+}</div>
+</div>
+
+<div class="endpoint">
+<span class="method-post">POST</span><span class="path">/ai/auth/login</span>
+<p class="desc">用户登录，返回 JWT token。同时支持管理员登录（role=ADMIN）。</p>
+<table class="params"><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
+<tr><td>username</td><td>String</td><td>是</td><td>用户名</td></tr>
+<tr><td>password</td><td>String</td><td>是</td><td>密码</td></tr>
+</table>
+<p class="example-label">请求示例</p>
+<div class="example">POST https://ggysummer.zeabur.app/ai/auth/login
+Content-Type: application/json
+
+{"username": "admin", "password": "admin123"}</div>
+<p class="example-label">响应示例</p>
+<div class="example">{
+  "code": 200,
+  "message": "登录成功",
+  "success": true,
+  "data": {
+    "userId": "2c5edab9-5438-4ae7-a7fc-53d3583e9adc",
+    "username": "admin",
+    "token": "eyJhbGciOiJIUzI1NiJ9...",
+    "role": "ADMIN"
+  }
+}</div>
+<div class="auth-note">💡 此后所有请求需在 Header 携带：<code>Authorization: Bearer &lt;token&gt;</code></div>
+</div>
+
+<div class="endpoint">
+<span class="method-post">POST</span><span class="path">/ai/auth/logout</span>
+<p class="desc">用户注销（前端清除本地 token 即可，后端无状态）。</p>
+<p class="example-label">请求示例</p>
+<div class="example">POST https://ggysummer.zeabur.app/ai/auth/logout
+Authorization: Bearer &lt;token&gt;</div>
+<p class="example-label">响应示例</p>
+<div class="example">{
+  "code": 200,
+  "message": "注销成功",
+  "success": true,
+  "data": null
+}</div>
+</div>
+</div>
+
+<!-- ==================== 2. Chat ==================== -->
+<div class="section" id="chat">
+<div class="section-title">2. 对话接口 <span class="badge">ChatController</span></div>
+
+<div class="endpoint">
+<span class="method-get">GET</span><span class="path">/ai/chat</span>
+<p class="desc">普通对话接口，返回纯文本 Markdown。前端直接 innerHTML 渲染。</p>
+<table class="params"><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
+<tr><td>message</td><td>String</td><td>否</td><td>用户输入文本，默认"你好"</td></tr>
+<tr><td>sessionId</td><td>String</td><td>否</td><td>会话 ID，默认"default"</td></tr>
+<tr><td>mode</td><td>String</td><td>否</td><td>模式：normal（普通 RAG）/ deep（Agentic RAG 深度思考），默认 normal</td></tr>
+</table>
+<p class="example-label">请求示例</p>
+<div class="example">GET https://ggysummer.zeabur.app/ai/chat?message=灵山胜境有哪些景点&amp;sessionId=sess_123&amp;mode=normal
+Authorization: Bearer &lt;token&gt;</div>
+<p class="example-label">响应示例（纯文本 Markdown）</p>
+<div class="example">好的，灵山胜境必看的核心景点如下：
+
+### 1. 灵山大佛
+- **位置**：祥符禅寺北侧，秦履峰南侧
+- **价格**：包含在大门票内（约210元/人）
+- **特色**：高88米，总高101.5米，耗铜725吨
+
+💡猜你想问：
+1. 这些景点怎么安排游览顺序最省力？
+2. 灵山胜境有没有推荐的半日游路线？</div>
+</div>
+
+<div class="endpoint">
+<span class="method-get">GET</span><span class="path">/ai/chat/stream</span>
+<p class="desc">SSE 流式对话接口，逐块推送 AI 回复。Content-Type 为 text/event-stream。</p>
+<table class="params"><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
+<tr><td>message</td><td>String</td><td>否</td><td>用户输入文本，默认"你好"</td></tr>
+<tr><td>sessionId</td><td>String</td><td>否</td><td>会话 ID，默认"default"</td></tr>
+<tr><td>mode</td><td>String</td><td>否</td><td>模式：normal / deep，默认 normal</td></tr>
+</table>
+<p class="example-label">请求示例</p>
+<div class="example">GET https://ggysummer.zeabur.app/ai/chat/stream?message=推荐美食&amp;sessionId=sess_123&amp;mode=normal
+Authorization: Bearer &lt;token&gt;</div>
+<p class="example-label">响应示例（SSE 流）</p>
+<div class="example">data: 好嘞，灵山的美食那可真是"素"得很有讲究！
+
+data: ### 1. 梵宫素斋自助
+- **位置**：灵山梵宫一楼
+- **价格**：50元/位
+
+data: ...（逐块推送）</div>
+<div class="note">⚠️ 此接口不能用 fetch().then(r =&gt; r.json())，必须使用 EventSource 或 ReadableStream 逐块读取。</div>
+</div>
+
+<div class="endpoint">
+<span class="method-get">GET</span><span class="path">/ai/chat/structured</span>
+<p class="desc">结构化对话接口，返回标准 JSON Result&lt;ScenicResponse&gt;，包含景点列表和摘要。</p>
+<table class="params"><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
+<tr><td>message</td><td>String</td><td>是</td><td>用户输入文本</td></tr>
+<tr><td>sessionId</td><td>String</td><td>否</td><td>会话 ID，默认"default"</td></tr>
+<tr><td>mode</td><td>String</td><td>否</td><td>模式：normal / deep，默认 normal</td></tr>
+</table>
+<p class="example-label">请求示例</p>
+<div class="example">GET https://ggysummer.zeabur.app/ai/chat/structured?message=推荐景点&amp;sessionId=sess_123
+Authorization: Bearer &lt;token&gt;</div>
+<p class="example-label">响应示例（JSON）</p>
+<div class="example">{
+  "code": 200,
+  "message": "查询成功",
+  "success": true,
+  "data": {
+    "summary": "灵山胜境是国家5A级景区，核心景点包括...",
+    "items": [
+      {
+        "id": 1,
+        "name": "灵山大佛",
+        "category": "景点",
+        "description": "高88米的青铜大佛",
+        "location": "祥符禅寺北侧",
+        "price": 210.0,
+        "openTime": "全天开放",
+        "tips": "可抱佛脚祈福，登高远眺太湖风光"
+      }
+    ]
+  }
+}</div>
+</div>
+</div>
+
+<!-- ==================== 3. History ==================== -->
+<div class="section" id="history">
+<div class="section-title">3. 历史会话接口 <span class="badge">HistoryController</span></div>
+<div class="auth-note">💡 所有历史接口需在 Header 携带 <code>Authorization: Bearer &lt;token&gt;</code>，数据按用户隔离。</div>
+
+<div class="endpoint">
+<span class="method-get">GET</span><span class="path">/ai/history</span>
+<p class="desc">查询当前用户的所有会话列表，按最后活跃时间降序。默认返回最近 50 条。</p>
+<p class="example-label">请求示例</p>
+<div class="example">GET https://ggysummer.zeabur.app/ai/history
+Authorization: Bearer &lt;token&gt;</div>
+<p class="example-label">响应示例</p>
+<div class="example">{
+  "code": 200,
+  "message": "查询成功",
+  "success": true,
+  "data": [
+    {
+      "sessionId": "sess_1784111716985_fplnqy",
+      "title": "灵山胜境有哪些景点",
+      "messageCount": 24,
+      "createTime": "2026-07-16T14:35:16",
+      "lastUpdateTime": "2026-07-16T15:02:33"
+    }
+  ]
+}</div>
+</div>
+
+<div class="endpoint">
+<span class="method-get">GET</span><span class="path">/ai/history/{sessionId}</span>
+<p class="desc">获取指定会话的所有消息（user + assistant 成对）。也可通过 ?sessionId=xxx 传参。</p>
+<table class="params"><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
+<tr><td>sessionId</td><td>String</td><td>是</td><td>会话 ID（路径参数或 query 参数均可）</td></tr>
+</table>
+<p class="example-label">请求示例</p>
+<div class="example">GET https://ggysummer.zeabur.app/ai/history/sess_1784111716985_fplnqy
+Authorization: Bearer &lt;token&gt;</div>
+<p class="example-label">响应示例</p>
+<div class="example">{
+  "code": 200,
+  "message": "查询成功",
+  "success": true,
+  "data": [
+    {"type": "user", "content": "灵山胜境有哪些景点", "timestamp": null},
+    {"type": "assistant", "content": "好的，根据您提供的背景知识...", "timestamp": null}
+  ]
+}</div>
+</div>
+
+<div class="endpoint">
+<span class="method-delete">DELETE</span><span class="path">/ai/history/{sessionId}</span>
+<p class="desc">删除指定会话及其所有消息、摘要和压缩记录。</p>
+<p class="example-label">请求示例</p>
+<div class="example">DELETE https://ggysummer.zeabur.app/ai/history/sess_1784111716985_fplnqy
+Authorization: Bearer &lt;token&gt;</div>
+<p class="example-label">响应示例</p>
+<div class="example">{
+  "code": 200,
+  "message": "删除成功",
+  "success": true,
+  "data": null
+}</div>
+</div>
+</div>
+
+<!-- ==================== 4. Preferences ==================== -->
+<div class="section" id="prefs">
+<div class="section-title">4. 用户偏好接口 <span class="badge">PreferencesController</span></div>
+<div class="auth-note">💡 所有偏好接口需在 Header 携带 <code>Authorization: Bearer &lt;token&gt;</code>，偏好按用户隔离。</div>
+
+<div class="endpoint">
+<span class="method-post">POST</span><span class="path">/ai/preferences</span>
+<p class="desc">保存用户手动偏好设置。会覆盖之前的偏好并清空对话自动提取的槽位。</p>
+<table class="params"><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
+<tr><td>interest</td><td>String</td><td>否</td><td>兴趣偏好（如：美食、景点、文化、路线、住宿）</td></tr>
+<tr><td>duration</td><td>String</td><td>否</td><td>游玩时长（如：半天、全天、2小时）</td></tr>
+<tr><td>crowd</td><td>String</td><td>否</td><td>游客人群（如：情侣、家庭、老人、小孩）</td></tr>
+</table>
+<p class="example-label">请求示例</p>
+<div class="example">POST https://ggysummer.zeabur.app/ai/preferences
+Authorization: Bearer &lt;token&gt;
+Content-Type: application/json
+
+{"interest": "美食", "duration": "全天", "crowd": "情侣"}</div>
+<p class="example-label">响应示例</p>
+<div class="example">{
+  "code": 200,
+  "message": "偏好已保存",
+  "success": true,
+  "data": null
+}</div>
+</div>
+
+<div class="endpoint">
+<span class="method-get">GET</span><span class="path">/ai/preferences</span>
+<p class="desc">读取用户手动偏好设置。</p>
+<p class="example-label">请求示例</p>
+<div class="example">GET https://ggysummer.zeabur.app/ai/preferences
+Authorization: Bearer &lt;token&gt;</div>
+<p class="example-label">响应示例</p>
+<div class="example">{
+  "code": 200,
+  "message": "查询成功",
+  "success": true,
+  "data": {
+    "interest": "美食",
+    "duration": "全天",
+    "crowd": "情侣"
+  }
+}</div>
+</div>
+
+<div class="endpoint">
+<span class="method-delete">DELETE</span><span class="path">/ai/preferences</span>
+<p class="desc">清空用户偏好（手动 + 自动槽位全部重置）。</p>
+<p class="example-label">请求示例</p>
+<div class="example">DELETE https://ggysummer.zeabur.app/ai/preferences
+Authorization: Bearer &lt;token&gt;</div>
+<p class="example-label">响应示例</p>
+<div class="example">{
+  "code": 200,
+  "message": "偏好已清空",
+  "success": true,
+  "data": null
+}</div>
+</div>
+</div>
+
+<!-- ==================== 5. ASR ==================== -->
+<div class="section" id="asr">
+<div class="section-title">5. 语音识别接口 <span class="badge">AsrController</span></div>
+
+<div class="endpoint">
+<span class="method-post">POST</span><span class="path">/ai/asr</span>
+<p class="desc">百度短语音识别。前端将录音编码为 WAV 格式后发送。</p>
+<table class="params"><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
+<tr><td>file</td><td>MultipartFile</td><td>是</td><td>WAV 格式音频文件（16kHz, 16bit, 单声道）</td></tr>
+<tr><td>dev_pid</td><td>int</td><td>否</td><td>语言模型：1537(普通话) / 1737(英语) / 1637(粤语) / 1837(四川话)，默认1537</td></tr>
+</table>
+<div class="auth-note">💡 前端需先调用 MediaRecorder 录音 → encodeWAV 转为 PCM → FormData 上传。</div>
+<p class="example-label">请求示例</p>
+<div class="example">POST https://ggysummer.zeabur.app/ai/asr
+Authorization: Bearer &lt;token&gt;
+Content-Type: multipart/form-data
+
+file: [WAV 二进制数据]</div>
+<p class="example-label">响应示例</p>
+<div class="example">{
+  "code": 200,
+  "message": "识别成功",
+  "success": true,
+  "data": "灵山胜境有哪些必看的景点"
+}</div>
+</div>
+</div>
+
+<!-- ==================== 6. TTS ==================== -->
+<div class="section" id="tts">
+<div class="section-title">6. 语音合成接口 <span class="badge">TtsController</span></div>
+
+<div class="endpoint">
+<span class="method-get">GET</span><span class="path">/ai/tts</span>
+<p class="desc">百度短文本在线合成，返回 MP3 二进制流。</p>
+<table class="params"><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
+<tr><td>text</td><td>String</td><td>是</td><td>要合成的文本</td></tr>
+<tr><td>voice</td><td>int</td><td>否</td><td>音色编号，默认3（度小美）</td></tr>
+<tr><td>speed</td><td>int</td><td>否</td><td>语速 0-15，默认5</td></tr>
+<tr><td>pitch</td><td>int</td><td>否</td><td>音调 0-15，默认5</td></tr>
+<tr><td>volume</td><td>int</td><td>否</td><td>音量 0-15，默认5</td></tr>
+</table>
+<p class="example-label">请求示例</p>
+<div class="example">GET https://ggysummer.zeabur.app/ai/tts?text=欢迎来到灵山胜境&amp;voice=3
+Authorization: Bearer &lt;token&gt;</div>
+<p class="example-label">响应示例</p>
+<div class="example">Content-Type: application/octet-stream
+Content-Disposition: attachment; filename=tts.mp3
+
+[MP3 二进制数据]</div>
+<div class="note">⚠️ 此接口返回 MP3 二进制流，前端应使用 blob 方式处理：<br/>const blob = await response.blob();<br/>const url = URL.createObjectURL(blob);<br/>new Audio(url).play();</div>
+</div>
+</div>
+
+<!-- ==================== 7. Import ==================== -->
+<div class="section" id="import">
+<div class="section-title">7. 知识库导入接口 <span class="badge">ImportController</span></div>
+
+<div class="endpoint">
+<span class="method-post">POST</span><span class="path">/ai/import</span>
+<p class="desc">上传知识库文件（Excel/Word），后端自动解析、切分、向量化后存入 Qdrant。</p>
+<table class="params"><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
+<tr><td>file</td><td>MultipartFile</td><td>是</td><td>知识库文件（.xlsx / .docx），表单上传</td></tr>
+</table>
+<p class="example-label">请求示例（JavaScript）</p>
+<div class="example">const formData = new FormData();
+formData.append('file', fileInput.files[0]);
+
+fetch('https://ggysummer.zeabur.app/ai/import', {
+  method: 'POST',
+  headers: { 'Authorization': 'Bearer &lt;token&gt;' },
+  body: formData
+}).then(r =&gt; r.json());</div>
+<p class="example-label">响应示例（成功）</p>
+<div class="example">{
+  "code": 200,
+  "message": "文件导入成功: 灵山胜境数据集.xlsx",
+  "success": true,
+  "data": "灵山胜境数据集.xlsx"
+}</div>
+</div>
+
+<div class="endpoint">
+<span class="method-get">GET</span><span class="path">/ai/cache/stats</span>
+<p class="desc">查询 Rerank 三级缓存统计信息（L1 精确 / L2 归一化 / L3 SimHash 语义）。</p>
+<p class="example-label">请求示例</p>
+<div class="example">GET https://ggysummer.zeabur.app/ai/cache/stats
+Authorization: Bearer &lt;token&gt;</div>
+<p class="example-label">响应示例</p>
+<div class="example">{
+  "code": 200,
+  "message": "查询成功",
+  "success": true,
+  "data": {
+    "l1Size": 128,
+    "l1Hits": 456,
+    "l2Size": 64,
+    "l2Hits": 234,
+    "l3Size": 32,
+    "l3Hits": 123,
+    "apiCalls": 89,
+    "hitRate": "89.0%"
+  }
+}</div>
+</div>
+
+<div class="endpoint">
+<span class="method-post">POST</span><span class="path">/ai/cache/clear</span>
+<p class="desc">手动清空 Rerank 三级缓存（L1/L2/L3 全部重置）。适用于导入新文档后清除旧缓存。</p>
+<p class="example-label">请求示例</p>
+<div class="example">POST https://ggysummer.zeabur.app/ai/cache/clear
+Authorization: Bearer &lt;token&gt;</div>
+<p class="example-label">响应示例</p>
+<div class="example">{
+  "code": 200,
+  "message": "Rerank 三级缓存已清空",
+  "success": true,
+  "data": null
+}</div>
+</div>
+</div>
+
+<!-- ==================== 8. RAG ==================== -->
+<div class="section" id="rag">
+<div class="section-title">8. 知识库管理接口 <span class="badge">RagController</span></div>
+
+<div class="endpoint">
+<span class="method-get">GET</span><span class="path">/ai/rag/stats</span>
+<p class="desc">查询知识库统计信息，包括碎片总数、文档来源数和缓存统计。</p>
+<p class="example-label">请求示例</p>
+<div class="example">GET https://ggysummer.zeabur.app/ai/rag/stats
+Authorization: Bearer &lt;token&gt;</div>
+<p class="example-label">响应示例</p>
+<div class="example">{
+  "code": 200,
+  "message": "查询成功",
+  "success": true,
+  "data": {
+    "totalChunks": 82,
+    "sourceCount": 3,
+    "cacheStats": {
+      "l1Size": 128,
+      "l1Hits": 456,
+      "hitRate": "89.0%"
+    }
+  }
+}</div>
+</div>
+
+<div class="endpoint">
+<span class="method-delete">DELETE</span><span class="path">/ai/rag/document/all</span>
+<p class="desc">清空整个知识库（删除 Qdrant 中所有碎片）。⚠️ 操作不可逆，请谨慎使用。</p>
+<p class="example-label">请求示例</p>
+<div class="example">DELETE https://ggysummer.zeabur.app/ai/rag/document/all
+Authorization: Bearer &lt;token&gt;</div>
+<p class="example-label">响应示例</p>
+<div class="example">{
+  "code": 200,
+  "message": "知识库已清空",
+  "success": true,
+  "data": "所有碎片已删除"
+}</div>
+</div>
+</div>
+
+<!-- ==================== 9. Admin ==================== -->
+<div class="section" id="admin">
+<div class="section-title">9. 管理员接口 <span class="badge">AdminController</span></div>
+<div class="note">⚠️ 所有管理员接口需携带 Admin/SuperAdmin 角色的 JWT Token。</div>
+
+<div class="endpoint">
+<span class="method-get">GET</span><span class="path">/ai/admin/users</span>
+<p class="desc">查询所有用户列表（分页）。仅管理员可调用。</p>
+<table class="params"><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
+<tr><td>page</td><td>int</td><td>否</td><td>页码，默认1</td></tr>
+<tr><td>size</td><td>int</td><td>否</td><td>每页条数，默认20</td></tr>
+</table>
+<p class="example-label">请求示例</p>
+<div class="example">GET https://ggysummer.zeabur.app/ai/admin/users?page=1&amp;size=20
+Authorization: Bearer &lt;admin_token&gt;</div>
+<p class="example-label">响应示例</p>
+<div class="example">{
+  "code": 200,
+  "message": "查询成功",
+  "success": true,
+  "data": [
+    {
+      "userId": "2c5edab9-...",
+      "username": "admin",
+      "role": "ADMIN",
+      "status": "active",
+      "createTime": "2026-07-18T23:28:32"
+    },
+    {
+      "userId": "efac5edb-...",
+      "username": "testuser1",
+      "role": "USER",
+      "status": "active",
+      "createTime": "2026-07-18T23:29:07"
+    }
+  ]
+}</div>
+</div>
+
+<div class="endpoint">
+<span class="method-get">GET</span><span class="path">/ai/admin/users/{userId}</span>
+<p class="desc">查询指定用户详情。</p>
+<p class="example-label">请求示例</p>
+<div class="example">GET https://ggysummer.zeabur.app/ai/admin/users/efac5edb-655a-4184-aba8-99ec5d24de7c
+Authorization: Bearer &lt;admin_token&gt;</div>
+<p class="example-label">响应示例</p>
+<div class="example">{
+  "code": 200,
+  "message": "查询成功",
+  "success": true,
+  "data": {
+    "userId": "efac5edb-...",
+    "username": "testuser1",
+    "role": "USER",
+    "status": "active",
+    "createTime": "2026-07-18T23:29:07"
+  }
+}</div>
+</div>
+
+<div class="endpoint">
+<span class="method-put">PUT</span><span class="path">/ai/admin/users/{userId}/role</span>
+<p class="desc">修改用户角色或状态。</p>
+<table class="params"><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
+<tr><td>role</td><td>String</td><td>否</td><td>角色：USER / ADMIN</td></tr>
+<tr><td>status</td><td>String</td><td>否</td><td>状态：active / disabled</td></tr>
+</table>
+<p class="example-label">请求示例</p>
+<div class="example">PUT https://ggysummer.zeabur.app/ai/admin/users/efac5edb-.../role
+Authorization: Bearer &lt;admin_token&gt;
+Content-Type: application/json
+
+{"role": "ADMIN", "status": "active"}</div>
+<p class="example-label">响应示例</p>
+<div class="example">{
+  "code": 200,
+  "message": "更新成功",
+  "success": true,
+  "data": null
+}</div>
+</div>
+
+<div class="endpoint">
+<span class="method-delete">DELETE</span><span class="path">/ai/admin/users/{userId}</span>
+<p class="desc">禁用指定用户（软删除，状态设为 disabled）。</p>
+<p class="example-label">请求示例</p>
+<div class="example">DELETE https://ggysummer.zeabur.app/ai/admin/users/efac5edb-...
+Authorization: Bearer &lt;admin_token&gt;</div>
+<p class="example-label">响应示例</p>
+<div class="example">{
+  "code": 200,
+  "message": "账号已禁用",
+  "success": true,
+  "data": null
+}</div>
+</div>
+</div>
+
+<!-- ==================== 10. Analytics ==================== -->
+<div class="section" id="analytics">
+<div class="section-title">10. 数据分析接口 <span class="badge">AnalyticsController</span></div>
+<div class="note">⚠️ 所有分析接口需携带 Admin/SuperAdmin 角色的 JWT Token。</div>
+
+<div class="endpoint">
+<span class="method-get">GET</span><span class="path">/ai/analytics/dashboard</span>
+<p class="desc">数据仪表盘总览，包含服务次数、活跃用户、热门问题 Top10、情感分布、满意度趋势。</p>
+<p class="example-label">请求示例</p>
+<div class="example">GET https://ggysummer.zeabur.app/ai/analytics/dashboard
+Authorization: Bearer &lt;admin_token&gt;</div>
+<p class="example-label">响应示例</p>
+<div class="example">{
+  "code": 200,
+  "message": "查询成功",
+  "success": true,
+  "data": {
+    "serviceCount": {"total": 11, "today": 11, "week": 11, "trend": "0%"},
+    "activeUsers": {"current": 5, "peakToday": 5},
+    "hotQuestionsTop10": [
+      {"rank": 1, "question": "灵山有哪些必看景点？", "count": 1}
+    ],
+    "emotionDistribution": {"positive": 0.09, "neutral": 0.82, "negative": 0.09},
+    "satisfactionTrend": [{"date": "2026-07-18", "score": 0.09}]
+  }
+}</div>
+</div>
+
+<div class="endpoint">
+<span class="method-get">GET</span><span class="path">/ai/analytics/hot-questions</span>
+<p class="desc">热门问题排行榜。</p>
+<table class="params"><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
+<tr><td>limit</td><td>int</td><td>否</td><td>返回条数，默认10</td></tr>
+</table>
+<p class="example-label">请求示例</p>
+<div class="example">GET https://ggysummer.zeabur.app/ai/analytics/hot-questions?limit=10
+Authorization: Bearer &lt;admin_token&gt;</div>
+</div>
+
+<div class="endpoint">
+<span class="method-get">GET</span><span class="path">/ai/analytics/sentiment-trend</span>
+<p class="desc">情感趋势变化（按天统计）。</p>
+<table class="params"><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
+<tr><td>days</td><td>int</td><td>否</td><td>天数，默认7</td></tr>
+</table>
+<p class="example-label">请求示例</p>
+<div class="example">GET https://ggysummer.zeabur.app/ai/analytics/sentiment-trend?days=7
+Authorization: Bearer &lt;admin_token&gt;</div>
+</div>
+
+<div class="endpoint">
+<span class="method-get">GET</span><span class="path">/ai/analytics/service-count</span>
+<p class="desc">服务次数统计。</p>
+<table class="params"><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
+<tr><td>period</td><td>String</td><td>否</td><td>周期：today / week / month，默认today</td></tr>
+</table>
+<p class="example-label">请求示例</p>
+<div class="example">GET https://ggysummer.zeabur.app/ai/analytics/service-count?period=week
+Authorization: Bearer &lt;admin_token&gt;</div>
+</div>
+
+<div class="endpoint">
+<span class="method-get">GET</span><span class="path">/ai/analytics/reports</span>
+<p class="desc">历史分析报告列表。</p>
+<table class="params"><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
+<tr><td>page</td><td>int</td><td>否</td><td>页码，默认1</td></tr>
+<tr><td>size</td><td>int</td><td>否</td><td>每页条数，默认20</td></tr>
+</table>
+<p class="example-label">请求示例</p>
+<div class="example">GET https://ggysummer.zeabur.app/ai/analytics/reports?page=1&amp;size=20
+Authorization: Bearer &lt;admin_token&gt;</div>
+</div>
+
+<div class="endpoint">
+<span class="method-get">GET</span><span class="path">/ai/analytics/reports/{reportId}</span>
+<p class="desc">获取指定报告详情。</p>
+<p class="example-label">请求示例</p>
+<div class="example">GET https://ggysummer.zeabur.app/ai/analytics/reports/1
+Authorization: Bearer &lt;admin_token&gt;</div>
+</div>
+
+<div class="endpoint">
+<span class="method-get">GET</span><span class="path">/ai/analytics/export/today</span>
+<p class="desc">导出今日数据为 CSV 格式。</p>
+<p class="example-label">请求示例</p>
+<div class="example">GET https://ggysummer.zeabur.app/ai/analytics/export/today
+Authorization: Bearer &lt;admin_token&gt;</div>
+<p class="example-label">响应示例</p>
+<div class="example">Content-Type: text/csv
+Content-Disposition: attachment; filename=today_report.csv
+
+id,title,type,sentiment,...
+1,"灵山景点","QA","positive",...</div>
+</div>
+</div>
+
+</div>
+<div style="text-align:center;padding:30px;color:#718096;font-size:.85em">
+API 文档 v2.0 | 景区智慧导游系统 | 2026-07-18
+</div>
+</body></html>
