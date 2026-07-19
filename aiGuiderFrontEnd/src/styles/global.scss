@@ -1,0 +1,185 @@
+// ============================================
+// 全局样式 — AI数字人智能景区导览系统
+// ============================================
+
+// === CSS Reset ===
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial,
+    sans-serif;
+  line-height: 1.6;
+  color: #333;
+  background-color: #f5f7fa;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+// === 滚动条 ===
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c0c4cc;
+  border-radius: 3px;
+}
+
+// === 移动端安全区域 ===
+.mobile-container {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+// === 管理后台布局 ===
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+
+  &__sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: #304156;
+    transition: width 0.3s;
+
+    &.collapsed {
+      width: 64px;
+    }
+  }
+
+  &__main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  &__header {
+    height: 56px;
+    background: #fff;
+    border-bottom: 1px solid #e6e6e6;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+  }
+
+  &__breadcrumb {
+    padding: 12px 20px;
+    background: #fff;
+  }
+
+  &__content {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+  }
+}
+
+// === 聊天消息气泡（复用） ===
+.message-bubble {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  word-break: break-word;
+  line-height: 1.5;
+  font-size: 15px;
+
+  &--user {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+
+  &--ai {
+    background: #fff;
+    color: #333;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  }
+}
+
+// === 打字机光标 ===
+.typing-cursor::after {
+  content: '|';
+  animation: cursorBlink 0.8s infinite;
+  color: #667eea;
+}
+
+@keyframes cursorBlink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+// === ECharts 容器 ===
+.chart-container {
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+}
+
+// ============================================
+// Live2D 数字人全局样式
+// ============================================
+
+// Live2D Canvas 全局保底
+.dh-live2d-canvas {
+  display: block;
+  image-rendering: auto;
+  // 防止 canvas 被选中
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+// 数字人舞台容器
+.dh-stage {
+  overflow: visible; // 建议气泡需要溢出
+}
+
+// 建议气泡容器 (低透明度，不明显遮盖模型)
+.dh-suggestions {
+  pointer-events: auto;
+}
+
+// 数字人出场/退场过渡
+.dh--ready {
+  animation: dhFadeIn 0.6s ease-out both;
+}
+
+@keyframes dhFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
